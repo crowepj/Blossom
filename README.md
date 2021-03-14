@@ -1,4 +1,4 @@
 # WattLang
-WattLang is an Interpreted programming language written in C
+WattLang is a concise programming language written in C. It is interpreted, that's subject to change
 
 Contributors are appreciated, please read contributing.md first
