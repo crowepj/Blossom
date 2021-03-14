@@ -1,0 +1,11 @@
+//This file has nothing to do with the lexer and is just a demonstration of the grammar
+//[] = reserved character / keyword
+
+[var] <IDENTIFIER> [=] <VALUE>
+<IDENTIFIER> [=] <VALUE>
+<IDENTIFIER>[(][)]
+//Variable number of arguments
+<IDENTIFIER>[(]<...>[)]
+
+//Variable number of arguments, code between the brackets
+[func] <IDENTIFIER>[(]<...>[)] [{]<code>[}]
