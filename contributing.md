@@ -16,3 +16,7 @@ If statements containing only one line of code should be like this:<br>
 if (statement)
   code;
 ```
+
+<h2><b>Memory Management</b></h2>
+Ensure all memory allocated has functions to free it and that memory is always freed.<br>
+Always confirm any memory being written to is not NULL
