@@ -8,3 +8,11 @@
 <h1><b>Struct Names</b></h1>
   <p>See Variable Names</p>
   
+<h1><b>Programming Practices</b></h1>
+<h2><b>if Statements</b></h2>
+If statements containing only one line of code should be like this:<br>
+
+```
+if (statement)
+  code;
+```
