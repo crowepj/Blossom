@@ -1,10 +1,7 @@
 #pragma once
 #include "DynamicArray.h"
 
-///Forward Declare Struct to prevent circular inclusion
-struct ParameterList;
-
-enum AstNodeType 
+enum AstNodeType
 {
 	FunctionCall,
 	FunctionDeclaration,
@@ -13,14 +10,15 @@ enum AstNodeType
 	ConditionalStatement,
 };
 
-enum AstNodeObjectType 
+enum AstNodeObjectType
 {
+	//Primitives
 	AST_INTEGER,
 	AST_STRING,
 	AST_CHAR,
+
+	//Other
 	CUSTOM_OBJECT,
-	///For Parameter List first value, so that it can now that the first value is uninitialized
-	AST_UNINITIALIZED,
 };
 
 struct WattObject
@@ -31,16 +29,19 @@ struct WattObject
 
 struct AstNode
 {
-	struct AstNode* Parent;
 	struct AstNode* Left;
 	struct AstNode* Right;
 
-	struct ParameterList* Parameters;
+	struct DynamicArray* Parameters;
 };
 
-struct AST 
+//One AST = One Function
+struct AST
 {
-	struct AstNode* Root;
+	//DynamicArray is Type <AstNode>
+	char* Name;
+	struct DynamicArray Nodes;
 };
 
-void AST_Initialize(struct AST* This, struct DynamicArray Tokens);
+void AST_Initialize(struct AST* This);
+void AST_Generate(struct AST* This, struct DynamicArray* Tokens);
