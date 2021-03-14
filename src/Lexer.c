@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <memory.h>
+#include <stdio.h>
 #include "Lexer.h"
 
 //For checking if we should split token
@@ -17,9 +19,9 @@ int isdelimeter(char c)
 	}
 };
 
-int isidentifier(const char* buffer) 
+int isidentifier(const char* buffer)
 {
-	for (int i = 0; i < strlen(buffer); i++) 
+	for (int i = 0; i < strlen(buffer); i++)
 	{
 		if (isalpha(buffer[i]) == 0) return 0;
 	}
@@ -27,7 +29,7 @@ int isidentifier(const char* buffer)
 	return 1;
 };
 
-int concat(char c, char** destination) 
+int concat(char c, char** destination)
 {
 	char CurrentCharacter[] = { c,'\0' };
 
@@ -45,8 +47,10 @@ int concat(char c, char** destination)
 }
 
 //Return shallow copy of Token List, gotta free it yourself though ;)
-struct DynamicArray Lex(const char* Source) 
+struct DynamicArray Lex(const char* Source)
 {
+	printf("LEXER\n");
+
 	struct DynamicArray Tokens;
 	DynamicArray_Initialize(&Tokens, sizeof(Token));
 
@@ -65,9 +69,9 @@ struct DynamicArray Lex(const char* Source)
 			if (CurrentState == IN_QUOTE)
 			{
 				CurrentState = NONE;
-				
+
 				Token Tok;
-				Tok.Value = _strdup(Buffer);
+				Tok.Value = strdup(Buffer);
 				Tok.Size = strlen(Buffer) + 1;
 				Tok.Type = STRING;
 				Tok.Token = VALUE;
@@ -79,7 +83,7 @@ struct DynamicArray Lex(const char* Source)
 				continue;
 			}
 
-			else 
+			else
 			{
 				CurrentState = IN_QUOTE;
 				continue;
@@ -103,9 +107,9 @@ struct DynamicArray Lex(const char* Source)
 		}
 
 		//If delimeter reached, make token if not in char and not in string
-		if (CurrentState != IN_QUOTE && CurrentState != IN_SINGLE_QUOTE && isdelimeter(current + 1)) 
+		if (CurrentState != IN_QUOTE && CurrentState != IN_SINGLE_QUOTE && isdelimeter(current))
 		{
-			if (CurrentState == IN_NUMBER) 
+			if (CurrentState == IN_NUMBER)
 			{
 				int* ValuePointer = malloc(sizeof(int));
 				*ValuePointer = atoi(Buffer);
@@ -115,14 +119,14 @@ struct DynamicArray Lex(const char* Source)
 				Tok.Size = sizeof(int);
 				Tok.Type = INT;
 				Tok.Token = VALUE;
-
+				
 				DynamicArray_PushBack(&Tokens, &Tok);
 
 				Buffer[0] = '\0';
 				continue;
 			}
 
-			else if (strcmp(Buffer, "var") == 0) 
+			else if (strcmp(Buffer, "var") == 0)
 			{
 				Token Tok;
 				Tok.Type = NONE;
@@ -134,7 +138,7 @@ struct DynamicArray Lex(const char* Source)
 				continue;
 			}
 
-			else if (strcmp(Buffer, "func") == 0) 
+			else if (strcmp(Buffer, "func") == 0)
 			{
 				Token Tok;
 				Tok.Type = NONE;
@@ -146,7 +150,7 @@ struct DynamicArray Lex(const char* Source)
 				continue;
 			}
 
-			else if (strcmp(Buffer, "int") == 0) 
+			else if (strcmp(Buffer, "int") == 0)
 			{
 				Token Tok;
 				Tok.Type = INT;
@@ -163,7 +167,7 @@ struct DynamicArray Lex(const char* Source)
 				Token Tok;
 				Tok.Type = NONE;
 				Tok.Token = IDENTIFIER;
-				Tok.Value = _strdup(Buffer);
+				Tok.Value = strdup(Buffer);
 				Tok.Size = strlen(Buffer) + 1;
 
 				DynamicArray_PushBack(&Tokens, &Tok);
@@ -172,7 +176,7 @@ struct DynamicArray Lex(const char* Source)
 			}
 		}
 
-		if (current == ';') 
+		if (current == ';')
 		{
 			Token Tok;
 			Tok.Token = SEMICOLON;
@@ -183,6 +187,8 @@ struct DynamicArray Lex(const char* Source)
 		}
 
 		concat(current, &Buffer);
+		printf(Buffer);
+		printf("\n");
 	}
 
 	free(Buffer);
