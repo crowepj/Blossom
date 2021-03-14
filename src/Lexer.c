@@ -8,7 +8,7 @@
 //For checking if we should split token
 int isdelimeter(char c)
 {
-	if (c == ' ' || c == '(' || c == ')' || c == '=' || c == '\"' || c == '\'' || c == '\0' || c == '\n' || c == ';')
+	if (c == ' ' || c == '(' || c == ')' || c == '=' || c == '\"' || c == '\'' || c == '\0' || c == '\n' || c == ';' || c == ':')
 	{
 		return 1;
 	}
@@ -178,6 +178,16 @@ struct DynamicArray Lex(const char* Source)
 		{
 			Token Tok;
 			Tok.Token = SEMICOLON;
+			Tok.Value = NULL;
+
+			DynamicArray_PushBack(&Tokens, &Tok);
+			continue;
+		}
+
+		else if (current == '=')
+		{
+			Token Tok;
+			Tok.Token = EQUAL;
 			Tok.Value = NULL;
 
 			DynamicArray_PushBack(&Tokens, &Tok);
