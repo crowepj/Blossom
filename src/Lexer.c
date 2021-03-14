@@ -49,8 +49,6 @@ int concat(char c, char** destination)
 //Return shallow copy of Token List, gotta free it yourself though ;)
 struct DynamicArray Lex(const char* Source)
 {
-	printf("LEXER\n");
-
 	struct DynamicArray Tokens;
 	DynamicArray_Initialize(&Tokens, sizeof(Token));
 
@@ -119,7 +117,7 @@ struct DynamicArray Lex(const char* Source)
 				Tok.Size = sizeof(int);
 				Tok.Type = INT;
 				Tok.Token = VALUE;
-				
+
 				DynamicArray_PushBack(&Tokens, &Tok);
 
 				Buffer[0] = '\0';
