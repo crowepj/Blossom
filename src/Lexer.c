@@ -87,6 +87,7 @@ int concat(char c, char** destination)
 	*destination = temp;
 
 	strcat(*destination, CurrentCharacter);
+	return 1;
 }
 
 enum FiniteStateTransition GetFiniteState(char Character)
@@ -152,7 +153,8 @@ const char* GetName(enum FiniteStateTransition Token)
 //Return shallow copy of Token List, gotta free it yourself though ;)
 struct DynamicArray Lex(const char* Source)
 {
-	struct DynamicArray e;
+	struct DynamicArray Tokens;
+	DynamicArray_Initialize(&Tokens, sizeof(Token));
 
 	enum FiniteStateTransition Result = NONE;
 	enum FiniteStateTransition CurrentState = NONE;
@@ -171,10 +173,21 @@ struct DynamicArray Lex(const char* Source)
 
 		if (Result == DELIMITER)
 		{
-			printf("%s\n", Buffer);
 			CurrentState = NONE;
 			PreviousState = NONE;
 			Result = NONE;
+
+			//We don't want whitespace in our token, but other things, such as brackets may have meaning
+			if (CurrentCharacter == ' ')
+			{
+				continue;
+			}
+
+			concat(CurrentCharacter, &Buffer);
+
+			Token Current;
+			Current.Original = strdup(Buffer);
+
 			Buffer[0] = '\0';
 			continue;
 		}
@@ -187,5 +200,5 @@ struct DynamicArray Lex(const char* Source)
 	}
 
 	free(Buffer);
-	return e;
+	return Tokens;
 }

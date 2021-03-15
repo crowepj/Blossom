@@ -1,6 +1,6 @@
 SRC = $(wildcard *.c)
-CFLAGS = -lm
+CFLAGS = -lm -ggdb3 -Wall
 
 All:
-	gcc *.c -o Interpreter
+	gcc $(CFLAGS) *.c -o Interpreter
 	./Interpreter
