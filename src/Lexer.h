@@ -1,17 +1,17 @@
 #pragma once
 #include "DynamicArray.h"
 
-enum State
+enum FiniteStateTransition
 {
-	TERMINAL,
-	NON_TERMINAL,
-
-	IN_QUOTE,
-	IN_SINGLE_QUOTE,
-
-	IN_NUMBER,
-
+	REJECTED,
 	NONE,
+	INTEGER,
+	OPERATOR,
+	CHARACTER,
+	SPACE,
+	DELIMITER,
+	QUOTE,
 };
 
+void Initialize_Lexer();
 struct DynamicArray Lex(const char* Source);

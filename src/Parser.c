@@ -22,7 +22,7 @@ void AST_Parse_Identifier(struct AST* This, struct DynamicArray* Tokens, int* In
 		if (NextToken.Token == CLOSE_BRACKET)
 		{
 			struct WattObject FunctionName;
-			FunctionName.Type = STRING;
+			FunctionName.Type = T_STRING;
 			FunctionName.Value = strdup(FunctionNameString);
 
 			struct AstNode* node = malloc(sizeof(struct AstNode));

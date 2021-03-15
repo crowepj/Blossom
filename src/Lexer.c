@@ -5,6 +5,49 @@
 #include <stdio.h>
 #include "Lexer.h"
 
+//A table which describes the tranisitions between Tokens
+static enum FiniteStateTransition FiniteStateTransitionTable[8][8];
+
+void Initialize_Lexer()
+{
+	FiniteStateTransitionTable[NONE][REJECTED] = NONE;
+	FiniteStateTransitionTable[NONE][NONE] = NONE;
+	FiniteStateTransitionTable[NONE][INTEGER] = INTEGER;
+	FiniteStateTransitionTable[NONE][OPERATOR] = OPERATOR;
+	FiniteStateTransitionTable[NONE][CHARACTER] = CHARACTER;
+	FiniteStateTransitionTable[NONE][SPACE] = SPACE;
+	FiniteStateTransitionTable[NONE][DELIMITER] = DELIMITER;
+
+	FiniteStateTransitionTable[INTEGER][REJECTED] = REJECTED;
+	FiniteStateTransitionTable[INTEGER][NONE] = NONE;
+	FiniteStateTransitionTable[INTEGER][INTEGER] = INTEGER;
+	FiniteStateTransitionTable[INTEGER][OPERATOR] = OPERATOR;
+	FiniteStateTransitionTable[INTEGER][CHARACTER] = REJECTED;
+	FiniteStateTransitionTable[INTEGER][SPACE] = NONE;
+	FiniteStateTransitionTable[INTEGER][DELIMITER] = DELIMITER;
+
+	FiniteStateTransitionTable[OPERATOR][REJECTED] = REJECTED;
+	FiniteStateTransitionTable[OPERATOR][NONE] = NONE;
+	FiniteStateTransitionTable[OPERATOR][INTEGER] = INTEGER;
+	FiniteStateTransitionTable[OPERATOR][OPERATOR] = OPERATOR;
+	FiniteStateTransitionTable[OPERATOR][CHARACTER] = CHARACTER;
+	FiniteStateTransitionTable[OPERATOR][SPACE] = NONE;
+	FiniteStateTransitionTable[OPERATOR][DELIMITER] = DELIMITER;
+
+	FiniteStateTransitionTable[CHARACTER][REJECTED] = REJECTED;
+	FiniteStateTransitionTable[CHARACTER][NONE] = CHARACTER;
+	FiniteStateTransitionTable[CHARACTER][INTEGER] = CHARACTER;
+	FiniteStateTransitionTable[CHARACTER][OPERATOR] = CHARACTER;
+	FiniteStateTransitionTable[CHARACTER][CHARACTER] = CHARACTER;
+	FiniteStateTransitionTable[CHARACTER][SPACE] = CHARACTER;
+	FiniteStateTransitionTable[CHARACTER][DELIMITER] = DELIMITER;
+
+	//This has to be here for it to work
+	FiniteStateTransitionTable[INTEGER][SPACE] = NONE;
+
+	printf("\n%i\n\n", FiniteStateTransitionTable[INTEGER][SPACE]);
+}
+
 //For checking if we should split token
 int isdelimeter(char c)
 {
@@ -46,160 +89,103 @@ int concat(char c, char** destination)
 	strcat(*destination, CurrentCharacter);
 }
 
+enum FiniteStateTransition GetFiniteState(char Character)
+{
+	if (isdelimeter(Character))
+	{
+		return DELIMITER;
+	}
+
+	else if (isalpha(Character) != 0)
+	{
+		return CHARACTER;
+	}
+
+	else if (isdigit(Character) != 0)
+	{
+		return INTEGER;
+	}
+
+	else if (ispunct(Character) != 0)
+	{
+		printf("\n%c\n\n", Character);
+		return OPERATOR;
+	}
+
+	return NONE;
+};
+
+const char* GetName(enum FiniteStateTransition Token)
+{
+	switch (Token)
+	{
+		case REJECTED:
+			return "REJECTED";
+			break;
+		case NONE:
+			return "NONE";
+			break;
+		case INTEGER:
+			return "INTEGER";
+			break;
+		case OPERATOR:
+			return "OPERATOR";
+			break;
+		case CHARACTER:
+			return "CHARACTER";
+			break;
+		case SPACE:
+			return "SPACE";
+			break;
+		case DELIMITER:
+			return "DELIMITER";
+			break;
+		case QUOTE:
+			return "QUOTE";
+			break;
+		default:
+			return "UNDEFINED";
+			break;
+	}
+};
+
 //Return shallow copy of Token List, gotta free it yourself though ;)
 struct DynamicArray Lex(const char* Source)
 {
-	struct DynamicArray Tokens;
-	DynamicArray_Initialize(&Tokens, sizeof(Token));
+	struct DynamicArray e;
 
-	enum State CurrentState = NONE;
+	enum FiniteStateTransition Result = NONE;
+	enum FiniteStateTransition CurrentState = NONE;
+	enum FiniteStateTransition PreviousState = NONE;
+
 	char* Buffer = malloc(sizeof(char));
-	*Buffer = '\0';
 
-	for (int i = 0; i < strlen(Source) + 1; i++)
+	for (int i = 0; i < strlen(Source); i++)
 	{
-		char current = Source[i];
+		char CurrentCharacter = Source[i];
+		CurrentState = GetFiniteState(CurrentCharacter);
 
-		//Identify Current State
-		switch (current)
+		Result = FiniteStateTransitionTable[PreviousState][CurrentState];
+
+		//printf("%c : %i\n", CurrentCharacter, Result);
+
+		if (Result == DELIMITER)
 		{
-		case '\"':
-			if (CurrentState == IN_QUOTE)
-			{
-				CurrentState = NONE;
-
-				Token Tok;
-				Tok.Value = strdup(Buffer);
-				Tok.Size = strlen(Buffer) + 1;
-				Tok.Type = STRING;
-				Tok.Token = VALUE;
-
-				DynamicArray_PushBack(&Tokens, &Tok);
-
-				Buffer[0] = '\0';
-
-				continue;
-			}
-
-			else
-			{
-				CurrentState = IN_QUOTE;
-				continue;
-			}
-			break;
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			if (CurrentState != IN_QUOTE && CurrentState != IN_SINGLE_QUOTE)
-			{
-				CurrentState = IN_NUMBER;
-			}
-			break;
-		}
-
-		//If delimeter reached, make token if not in char and not in string
-		if (CurrentState != IN_QUOTE && CurrentState != IN_SINGLE_QUOTE && isdelimeter(current))
-		{
-			if (CurrentState == IN_NUMBER)
-			{
-				int* ValuePointer = malloc(sizeof(int));
-				*ValuePointer = atoi(Buffer);
-
-				Token Tok;
-				Tok.Value = ValuePointer;
-				Tok.Size = sizeof(int);
-				Tok.Type = INT;
-				Tok.Token = VALUE;
-
-				DynamicArray_PushBack(&Tokens, &Tok);
-
-				Buffer[0] = '\0';
-				continue;
-			}
-
-			else if (strcmp(Buffer, "var") == 0)
-			{
-				Token Tok;
-				Tok.Type = NONE;
-				Tok.Token = VAR;
-				Tok.Value = NULL;
-
-				DynamicArray_PushBack(&Tokens, &Tok);
-				Buffer[0] = '\0';
-				continue;
-			}
-
-			else if (strcmp(Buffer, "func") == 0)
-			{
-				Token Tok;
-				Tok.Type = NONE;
-				Tok.Token = FUNCTION;
-				Tok.Value = NULL;
-
-				DynamicArray_PushBack(&Tokens, &Tok);
-				Buffer[0] = '\0';
-				continue;
-			}
-
-			else if (strcmp(Buffer, "int") == 0)
-			{
-				Token Tok;
-				Tok.Type = INT;
-				Tok.Token = TYPE;
-				Tok.Value = NULL;
-
-				DynamicArray_PushBack(&Tokens, &Tok);
-				Buffer[0] = '\0';
-				continue;
-			}
-
-			else if (isidentifier(Buffer))
-			{
-				Token Tok;
-				Tok.Type = NONE;
-				Tok.Token = IDENTIFIER;
-				Tok.Value = strdup(Buffer);
-				Tok.Size = strlen(Buffer) + 1;
-
-				DynamicArray_PushBack(&Tokens, &Tok);
-				Buffer[0] = '\0';
-				continue;
-			}
-		}
-
-		if (current == ';')
-		{
-			Token Tok;
-			Tok.Token = SEMICOLON;
-			Tok.Value = NULL;
-
-			DynamicArray_PushBack(&Tokens, &Tok);
+			printf("%s\n", Buffer);
+			CurrentState = NONE;
+			PreviousState = NONE;
+			Result = NONE;
+			Buffer[0] = '\0';
 			continue;
 		}
 
-		else if (current == '=')
-		{
-			Token Tok;
-			Tok.Token = EQUAL;
-			Tok.Value = NULL;
+		CurrentState = Result;
+		PreviousState = CurrentState;
+		Result = NONE;
 
-			DynamicArray_PushBack(&Tokens, &Tok);
-			continue;
-		}
-
-		concat(current, &Buffer);
-		printf(Buffer);
-		printf("\n");
+		concat(CurrentCharacter, &Buffer);
 	}
 
 	free(Buffer);
-
-	return Tokens;
+	return e;
 }
