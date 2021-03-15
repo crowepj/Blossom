@@ -45,6 +45,7 @@ int DynamicArray_PushBack(struct DynamicArray* This, void* Value)
 
 void* DynamicArray_At(struct DynamicArray* This, int index)
 {
+	if (This->Length == 0) return 0;
 	return *(This->Begin + (This->Allocated / This->Length) * index);
 }
 

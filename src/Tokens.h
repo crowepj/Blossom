@@ -11,20 +11,21 @@ typedef enum
 	CLOSE_CURLY_BRACKET,
 	TYPE,
 	SEMICOLON,
+	EQUAL,
 	UNINITIALIZED = -1,
 	NULL_TOKEN = -2,
 } TokenEnum;
 
-typedef enum 
+typedef enum
 {
-	INT,
-	STRING,
-	CHAR,
-	FLOAT,
-	CUSTOM,
+	T_INT,
+	T_STRING,
+	T_CHAR,
+	T_FLOAT,
+	T_CUSTOM,
 } TypeEnum;
 
-typedef struct 
+typedef struct
 {
 	TokenEnum Token;
 	TypeEnum Type;
