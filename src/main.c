@@ -1,20 +1,9 @@
 #include "Lexer.h"
 #include <stdio.h>
 
-void test(struct DynamicArray Array) 
+int main()
 {
-	printf("%i", *(int*)DynamicArray_At(&Array, 0));
-}
-
-int main() 
-{
-	struct DynamicArray lexed = Lex("var test");
-
-	Token* tok = (Token*)DynamicArray_At(&lexed, 1);
-
-	printf("%i", tok->Token);
-
-	DynamicArray_Free(&lexed);
-
+	Initialize_Lexer();
+	struct DynamicArray E = Lex("int test = 3");
 	return 0;
 }
