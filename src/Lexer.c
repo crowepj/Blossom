@@ -5,49 +5,6 @@
 #include <stdio.h>
 #include "Lexer.h"
 
-//A table which describes the tranisitions between Tokens
-static enum FiniteStateTransition FiniteStateTransitionTable[8][8];
-
-void Initialize_Lexer()
-{
-	FiniteStateTransitionTable[NONE][REJECTED] = NONE;
-	FiniteStateTransitionTable[NONE][NONE] = NONE;
-	FiniteStateTransitionTable[NONE][INTEGER] = INTEGER;
-	FiniteStateTransitionTable[NONE][OPERATOR] = OPERATOR;
-	FiniteStateTransitionTable[NONE][CHARACTER] = CHARACTER;
-	FiniteStateTransitionTable[NONE][SPACE] = SPACE;
-	FiniteStateTransitionTable[NONE][DELIMITER] = DELIMITER;
-
-	FiniteStateTransitionTable[INTEGER][REJECTED] = REJECTED;
-	FiniteStateTransitionTable[INTEGER][NONE] = NONE;
-	FiniteStateTransitionTable[INTEGER][INTEGER] = INTEGER;
-	FiniteStateTransitionTable[INTEGER][OPERATOR] = OPERATOR;
-	FiniteStateTransitionTable[INTEGER][CHARACTER] = REJECTED;
-	FiniteStateTransitionTable[INTEGER][SPACE] = NONE;
-	FiniteStateTransitionTable[INTEGER][DELIMITER] = DELIMITER;
-
-	FiniteStateTransitionTable[OPERATOR][REJECTED] = REJECTED;
-	FiniteStateTransitionTable[OPERATOR][NONE] = NONE;
-	FiniteStateTransitionTable[OPERATOR][INTEGER] = INTEGER;
-	FiniteStateTransitionTable[OPERATOR][OPERATOR] = OPERATOR;
-	FiniteStateTransitionTable[OPERATOR][CHARACTER] = CHARACTER;
-	FiniteStateTransitionTable[OPERATOR][SPACE] = NONE;
-	FiniteStateTransitionTable[OPERATOR][DELIMITER] = DELIMITER;
-
-	FiniteStateTransitionTable[CHARACTER][REJECTED] = REJECTED;
-	FiniteStateTransitionTable[CHARACTER][NONE] = CHARACTER;
-	FiniteStateTransitionTable[CHARACTER][INTEGER] = CHARACTER;
-	FiniteStateTransitionTable[CHARACTER][OPERATOR] = CHARACTER;
-	FiniteStateTransitionTable[CHARACTER][CHARACTER] = CHARACTER;
-	FiniteStateTransitionTable[CHARACTER][SPACE] = CHARACTER;
-	FiniteStateTransitionTable[CHARACTER][DELIMITER] = DELIMITER;
-
-	//This has to be here for it to work
-	FiniteStateTransitionTable[INTEGER][SPACE] = NONE;
-
-	printf("\n%i\n\n", FiniteStateTransitionTable[INTEGER][SPACE]);
-}
-
 //For checking if we should split token
 int isdelimeter(char c)
 {
@@ -77,7 +34,7 @@ int concat(char c, char** destination)
 	char CurrentCharacter[] = { c,'\0' };
 
 	//Reallocate for enough space
-	char* temp = (char*)realloc(*destination, strlen(*destination) + 2);
+	char* temp = (char*)realloc(*destination, strlen(*destination) + 1);
 
 	if (temp == NULL)
 	{
@@ -86,119 +43,70 @@ int concat(char c, char** destination)
 
 	*destination = temp;
 
-	strcat(*destination, CurrentCharacter);
+	strcat(temp, CurrentCharacter);
 	return 1;
 }
 
-enum FiniteStateTransition GetFiniteState(char Character)
+char** Tokenize(const char* Source, int* Size)
 {
-	if (isdelimeter(Character))
-	{
-		return DELIMITER;
-	}
+//Array of strings
+	char** Array = malloc(sizeof(char**));
+	Array[0] = malloc(sizeof(char*));
 
-	else if (isalpha(Character) != 0)
-	{
-		return CHARACTER;
-	}
-
-	else if (isdigit(Character) != 0)
-	{
-		return INTEGER;
-	}
-
-	else if (ispunct(Character) != 0)
-	{
-		printf("\n%c\n\n", Character);
-		return OPERATOR;
-	}
-
-	return NONE;
-};
-
-const char* GetName(enum FiniteStateTransition Token)
-{
-	switch (Token)
-	{
-		case REJECTED:
-			return "REJECTED";
-			break;
-		case NONE:
-			return "NONE";
-			break;
-		case INTEGER:
-			return "INTEGER";
-			break;
-		case OPERATOR:
-			return "OPERATOR";
-			break;
-		case CHARACTER:
-			return "CHARACTER";
-			break;
-		case SPACE:
-			return "SPACE";
-			break;
-		case DELIMITER:
-			return "DELIMITER";
-			break;
-		case QUOTE:
-			return "QUOTE";
-			break;
-		default:
-			return "UNDEFINED";
-			break;
-	}
-};
-
-//Return shallow copy of Token List, gotta free it yourself though ;)
-struct DynamicArray Lex(const char* Source)
-{
-	struct DynamicArray Tokens;
-	DynamicArray_Initialize(&Tokens, sizeof(Token));
-
-	enum FiniteStateTransition Result = NONE;
-	enum FiniteStateTransition CurrentState = NONE;
-	enum FiniteStateTransition PreviousState = NONE;
+	int ArraySize = 1;
+	int ArrayIndex = 0;
 
 	char* Buffer = malloc(sizeof(char));
+	Buffer[0] = '\0';
+
+	int InString = 0;
 
 	for (int i = 0; i < strlen(Source); i++)
 	{
 		char CurrentCharacter = Source[i];
-		CurrentState = GetFiniteState(CurrentCharacter);
 
-		Result = FiniteStateTransitionTable[PreviousState][CurrentState];
-
-		//printf("%c : %i\n", CurrentCharacter, Result);
-
-		if (Result == DELIMITER)
+		if (CurrentCharacter == '\"' && Source[i - 1] != '\\')
 		{
-			CurrentState = NONE;
-			PreviousState = NONE;
-			Result = NONE;
-
-			//We don't want whitespace in our token, but other things, such as brackets may have meaning
-			if (CurrentCharacter == ' ')
-			{
-				continue;
-			}
-
-			concat(CurrentCharacter, &Buffer);
-
-			Token Current;
-			Current.Original = strdup(Buffer);
-
-			Buffer[0] = '\0';
-			continue;
+			InString = !InString;
 		}
 
-		CurrentState = Result;
-		PreviousState = CurrentState;
-		Result = NONE;
+		if (isdelimeter(CurrentCharacter) && !InString)
+		{
+			concat(CurrentCharacter, &Buffer);
+
+			//Reallocate array with enough capacity to store pointer to string
+			ArraySize++;
+			char** ArrTemp = realloc(Array, ArraySize * sizeof(char**));
+			//Allocate enough space to store string
+			char* Temp = malloc(strlen(Buffer) + 1);
+
+			if (Temp != NULL && ArrTemp != NULL)
+			{
+				//Realloc was successful so set array to it
+				Array = ArrTemp;
+				//Add new string value
+				Array[ArrayIndex] = Temp;
+				//Copy value over
+				strcpy(Array[ArrayIndex], Buffer);
+			}
+
+			//Otherwise, set it to NULL
+			else
+			{
+				Array[ArrayIndex] = NULL;
+			}
+
+			ArrayIndex++;
+			Buffer[0] = '\0';
+
+			continue;
+		}
 
 		concat(CurrentCharacter, &Buffer);
 	}
 
+	*Size = ArraySize;
+
 	free(Buffer);
-	return Tokens;
+	return Array;
 }

@@ -1,17 +1,5 @@
 #pragma once
 #include "DynamicArray.h"
 
-enum FiniteStateTransition
-{
-	REJECTED,
-	NONE,
-	INTEGER,
-	OPERATOR,
-	CHARACTER,
-	SPACE,
-	DELIMITER,
-	QUOTE,
-};
-
-void Initialize_Lexer();
-struct DynamicArray Lex(const char* Source);
+//Size is the length of the outputted array, it is set in the function
+char** Tokenize(const char* Source, int* Size);
