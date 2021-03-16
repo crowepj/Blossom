@@ -16,24 +16,30 @@ int main()
 
 		if (str != NULL)
 		{
-			fread(str, 1, size, File);
+			if (fread(str, 1, size, File) != NULL && str != NULL)
+			{
+				printf(str);
+			}
 
-			printf(str);
 			free(str);
 		}
 
 		fclose(File);
 	}
 
-	Initialize_Lexer();
-	struct DynamicArray E = Lex("int test = 3");
+	int Size;
+	char** E = Tokenize("int test = 3 ", &Size);
 
-	for (int i = 0; i < E.Length; i++)
+	for (int i = 0; i < Size - 1; i++)
 	{
-		Token* tok = DynamicArray_At(&E, i);
-		free((void*)tok->Original);
+		if (E[i] != NULL)
+		{
+			free(E[i]);
+		}
 	}
 
-	DynamicArray_Free(&E);
+	printf("%i\n", Size);
+
+	free(E);
 	return 0;
 }

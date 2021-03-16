@@ -50,6 +50,6 @@ void* DynamicArray_At(struct DynamicArray* This, int index)
 }
 
 void DynamicArray_Free(struct DynamicArray* This)
-{
+{	
 	free(This->Begin);
 }
