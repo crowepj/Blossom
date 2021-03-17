@@ -1,7 +1,7 @@
 #include "Lexer.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+//little endian
 int main()
 {
 	FILE* File = fopen("art","r");
@@ -28,18 +28,21 @@ int main()
 	}
 
 	int Size;
-	char** E = Tokenize("int test = 3 ", &Size);
+	int TokenSize;
+	char** E = Tokenize("printf();", &Size);
 
-	for (int i = 0; i < Size - 1; i++)
+	Token* T = Lex(E, Size, &TokenSize);
+
+	for (int i = 0; i < Size; i++)
 	{
+		printf("%s\n",E[i]);
 		if (E[i] != NULL)
 		{
 			free(E[i]);
 		}
 	}
 
-	printf("%i\n", Size);
-
 	free(E);
+	free(T);
 	return 0;
 }

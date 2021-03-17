@@ -72,7 +72,15 @@ char** Tokenize(const char* Source, int* Size)
 
 		if (isdelimeter(CurrentCharacter) && !InString)
 		{
-			concat(CurrentCharacter, &Buffer);
+			if (CurrentCharacter != ' ')
+			{
+				concat(CurrentCharacter, &Buffer);
+			}
+
+			else if(strcmp(Buffer, "") == 0)
+			{
+				continue;
+			}
 
 			//Reallocate array with enough capacity to store pointer to string
 			ArraySize++;
@@ -105,8 +113,76 @@ char** Tokenize(const char* Source, int* Size)
 		concat(CurrentCharacter, &Buffer);
 	}
 
-	*Size = ArraySize;
+	//Repeat the block because the last token is lost if there isn't a delimiter
+	if (Buffer[0] != '\0')
+	{
+		//Reallocate array with enough capacity to store pointer to string
+		ArraySize++;
+		char** ArrTemp = realloc(Array, ArraySize * sizeof(char**));
+		//Allocate enough space to store string
+		char* Temp = malloc(strlen(Buffer) + 1);
+
+		if (Temp != NULL && ArrTemp != NULL)
+		{
+			//Realloc was successful so set array to it
+			Array = ArrTemp;
+			//Add new string value
+			Array[ArrayIndex] = Temp;
+			//Copy value over
+			strcpy(Array[ArrayIndex], Buffer);
+		}
+
+		//Otherwise, set it to NULL
+		else
+		{
+			Array[ArrayIndex] = NULL;
+		}
+
+		ArrayIndex++;
+		Buffer[0] = '\0';
+	}
+
+	//ArraySize is 1 too big after the loop so subtract 1
+	*Size = ArraySize - 1;
 
 	free(Buffer);
 	return Array;
+}
+
+
+Token* Lex(char** Tokens, int Size, int* OutSize)
+{
+	int Index = 0;
+	int RetSize = 1;
+	Token* RetVal = malloc(sizeof(Token));
+
+	if (RetVal == NULL)
+	{
+		*OutSize = 0;
+		return NULL;
+	}
+
+	for (int i = 0; i < Size; i++)
+	{
+		if (strcmp(Tokens[i], "var") == 0)
+		{
+			char* Temp = realloc(RetVal, Size);
+
+			if (Temp == NULL)
+			{
+				printf("Something went wrong, please try again\n");
+				free(RetVal);
+				return NULL;
+			}
+
+			RetVal[Index].Token = VAR;
+			RetVal[Index].Value = NULL;
+			RetVal[Index].Size = 0;
+
+			Index++;
+			RetSize++;
+		}
+	}
+
+	return RetVal;
 }

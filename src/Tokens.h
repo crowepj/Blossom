@@ -32,6 +32,4 @@ typedef struct
 
 	void* Value;
 	int Size;
-
-	char* Original;
 } Token;
