@@ -22,7 +22,9 @@ typedef enum
 	T_STRING,
 	T_CHAR,
 	T_FLOAT,
-	T_CUSTOM,
+	T_STRUCTURE,
+	//Used internally for the lexer
+	T_NONE = -1,
 } TypeEnum;
 
 typedef struct

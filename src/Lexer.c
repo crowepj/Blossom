@@ -49,11 +49,11 @@ int concat(char c, char** destination)
 
 char** Tokenize(const char* Source, int* Size)
 {
-//Array of strings
-	char** Array = malloc(sizeof(char**));
-	Array[0] = malloc(sizeof(char*));
+	//Array of strings
+	//For explanation of malloc(0) see Lex function
+	char** Array = malloc(0);
 
-	int ArraySize = 1;
+	int ArraySize = 0;
 	int ArrayIndex = 0;
 
 	char* Buffer = malloc(sizeof(char));
@@ -65,6 +65,7 @@ char** Tokenize(const char* Source, int* Size)
 	{
 		char CurrentCharacter = Source[i];
 
+		//Have we hit a quote, is it escaped?, if not, we're either completing a string or starting a string
 		if (CurrentCharacter == '\"' && Source[i - 1] != '\\')
 		{
 			InString = !InString;
@@ -72,11 +73,13 @@ char** Tokenize(const char* Source, int* Size)
 
 		if (isdelimeter(CurrentCharacter) && !InString)
 		{
+			//Not interested in spaces in the tokens
 			if (CurrentCharacter != ' ')
 			{
 				concat(CurrentCharacter, &Buffer);
 			}
 
+			//Not interested if the buffer is empty
 			else if(strcmp(Buffer, "") == 0)
 			{
 				continue;
@@ -105,6 +108,7 @@ char** Tokenize(const char* Source, int* Size)
 			}
 
 			ArrayIndex++;
+			//This is the same as memsetting it to 0, this is more efficient because functions like strcmp only go up to a null character, meaning setting the first character is sufficient
 			Buffer[0] = '\0';
 
 			continue;
@@ -142,47 +146,98 @@ char** Tokenize(const char* Source, int* Size)
 		Buffer[0] = '\0';
 	}
 
-	//ArraySize is 1 too big after the loop so subtract 1
-	*Size = ArraySize - 1;
+	*Size = ArraySize;
 
 	free(Buffer);
 	return Array;
 }
 
+//Internal helper function for neater code
+int MakeToken(Token** TokenArray, TokenEnum TokenE, TypeEnum Type, void* Value, int TypeSize, int Index, int TokenArraySize)
+{
+	Token* TempPtr = realloc(*TokenArray, TokenArraySize + 1);
+
+	if (TempPtr == NULL)
+	{
+		printf("Something went wrong, please try again\n");
+		free(*TokenArray);
+		return 0;
+	}
+
+	*TokenArray = TempPtr;
+	(*TokenArray)[Index].Token = TokenE;
+	(*TokenArray)[Index].Type = Type;
+	(*TokenArray)[Index].Value = Value;
+	(*TokenArray)[Index].Size = TypeSize;
+
+	return 1;
+}
 
 Token* Lex(char** Tokens, int Size, int* OutSize)
 {
 	int Index = 0;
-	int RetSize = 1;
-	Token* RetVal = malloc(sizeof(Token));
+	int RetSize = 0;
+	//Use malloc to allocate 0 bytes because the pointer is valid if you pass it to realloc
+	//These are the tokens to be returned
+	Token* RetVal = malloc(0);
 
-	if (RetVal == NULL)
+	if (RetVal == 0)
 	{
+		printf("Failed to allocate buffer, please try again");
 		*OutSize = 0;
 		return NULL;
 	}
 
 	for (int i = 0; i < Size; i++)
 	{
+		//Lots of if statements
+		//TODO: Put token enum in order and have an array of strings that are also in order, iterate through them and compare, might be slower(O(n)) but it's much neater
 		if (strcmp(Tokens[i], "var") == 0)
 		{
-			char* Temp = realloc(RetVal, Size);
-
-			if (Temp == NULL)
+			if (MakeToken(&RetVal, VAR, T_NONE, NULL, 0, Index, RetSize) == 0)
 			{
-				printf("Something went wrong, please try again\n");
-				free(RetVal);
 				return NULL;
 			}
 
-			RetVal[Index].Token = VAR;
-			RetVal[Index].Value = NULL;
-			RetVal[Index].Size = 0;
+			Index++;
+			RetSize++;
+		}
+
+		else if (strcmp(Tokens[i], "func") == 0)
+		{
+			if (MakeToken(&RetVal, FUNCTION, T_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
+		else if (strcmp(Tokens[i], "int") == 0)
+		{
+			if (MakeToken(&RetVal, TYPE, T_INT, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
+		else if (strcmp(Tokens[i], ";") == 0)
+		{
+			if (MakeToken(&RetVal, SEMICOLON, T_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
 
 			Index++;
 			RetSize++;
 		}
 	}
+
+	*OutSize = RetSize;
 
 	return RetVal;
 }
