@@ -88,17 +88,16 @@ char** Tokenize(const char* Source, int* Size)
 			//Reallocate array with enough capacity to store pointer to string
 			ArraySize++;
 			char** ArrTemp = realloc(Array, ArraySize * sizeof(char**));
-			//Allocate enough space to store string
-			char* Temp = malloc(strlen(Buffer) + 1);
 
-			if (Temp != NULL && ArrTemp != NULL)
+			if (ArrTemp != NULL)
 			{
 				//Realloc was successful so set array to it
 				Array = ArrTemp;
-				//Add new string value
-				Array[ArrayIndex] = Temp;
-				//Copy value over
-				strcpy(Array[ArrayIndex], Buffer);
+
+				//strdup calls malloc in its internal implementation
+				Array[ArrayIndex] = strdup(Buffer);
+
+				//printf("Array: %s\nIndex: %i\n", Array[ArrayIndex], ArrayIndex);
 			}
 
 			//Otherwise, set it to NULL
@@ -117,35 +116,6 @@ char** Tokenize(const char* Source, int* Size)
 		concat(CurrentCharacter, &Buffer);
 	}
 
-	//Repeat the block because the last token is lost if there isn't a delimiter
-	if (Buffer[0] != '\0')
-	{
-		//Reallocate array with enough capacity to store pointer to string
-		ArraySize++;
-		char** ArrTemp = realloc(Array, ArraySize * sizeof(char**));
-		//Allocate enough space to store string
-		char* Temp = malloc(strlen(Buffer) + 1);
-
-		if (Temp != NULL && ArrTemp != NULL)
-		{
-			//Realloc was successful so set array to it
-			Array = ArrTemp;
-			//Add new string value
-			Array[ArrayIndex] = Temp;
-			//Copy value over
-			strcpy(Array[ArrayIndex], Buffer);
-		}
-
-		//Otherwise, set it to NULL
-		else
-		{
-			Array[ArrayIndex] = NULL;
-		}
-
-		ArrayIndex++;
-		Buffer[0] = '\0';
-	}
-
 	*Size = ArraySize;
 
 	free(Buffer);
@@ -155,7 +125,7 @@ char** Tokenize(const char* Source, int* Size)
 //Internal helper function for neater code
 int MakeToken(Token** TokenArray, TokenEnum TokenE, TypeEnum Type, void* Value, int TypeSize, int Index, int TokenArraySize)
 {
-	Token* TempPtr = realloc(*TokenArray, TokenArraySize + 1);
+	Token* TempPtr = realloc(*TokenArray, (TokenArraySize + 1) * sizeof(Token));
 
 	if (TempPtr == NULL)
 	{
@@ -181,7 +151,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 	//These are the tokens to be returned
 	Token* RetVal = malloc(0);
 
-	if (RetVal == 0)
+	if (RetVal == NULL)
 	{
 		printf("Failed to allocate buffer, please try again");
 		*OutSize = 0;
@@ -191,7 +161,6 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 	for (int i = 0; i < Size; i++)
 	{
 		//Lots of if statements
-		//TODO: Put token enum in order and have an array of strings that are also in order, iterate through them and compare, might be slower(O(n)) but it's much neater
 		if (strcmp(Tokens[i], "var") == 0)
 		{
 			if (MakeToken(&RetVal, VAR, T_NONE, NULL, 0, Index, RetSize) == 0)
@@ -199,6 +168,18 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 				return NULL;
 			}
 
+			Index++;
+			RetSize++;
+		}
+
+		else if (strcmp(Tokens[i], ":") == 0 && strcmp(Tokens[i + 1], "=") == 0)
+		{
+			if (MakeToken(&RetVal, EQUAL, T_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			i += 2;
 			Index++;
 			RetSize++;
 		}
@@ -225,6 +206,18 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 			RetSize++;
 		}
 
+		//C string
+		else if (strcmp(Tokens[i], "cstr") == 0)
+		{
+			if (MakeToken(&RetVal, TYPE, T_STRING, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
 		else if (strcmp(Tokens[i], ";") == 0)
 		{
 			if (MakeToken(&RetVal, SEMICOLON, T_NONE, NULL, 0, Index, RetSize) == 0)
@@ -235,9 +228,100 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 			Index++;
 			RetSize++;
 		}
+
+		else if (strcmp(Tokens[i], "(") == 0)
+		{
+			if (MakeToken(&RetVal, OPEN_BRACKET, T_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
+		else if (strcmp(Tokens[i], ")") == 0)
+		{
+			if (MakeToken(&RetVal, CLOSE_BRACKET, T_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
+		//This means it's an identifier
+		else
+		{
+			char LastCharacter = Tokens[i][strlen(Tokens[i]) - 1];
+
+			//TODO
+			//If the last character is a bracket it means it's A. A function Call or B. A function definition, this doesn't matter in the lexer but we have to separate those
+			if (LastCharacter == '(')
+			{
+				//If the last character is an open bracket, we don't want that in the identifier, so set it to a null character
+				Tokens[i][strlen(Tokens[i]) - 1] = '\0';
+
+				if (MakeToken(&RetVal, IDENTIFIER, T_NONE, strdup(Tokens[i]), strlen(Tokens[i]) + 1, Index, RetSize) == 0)
+				{
+					return NULL;
+				}
+
+				Index++;
+				RetSize++;
+
+				if (MakeToken(&RetVal, OPEN_BRACKET, T_NONE, NULL, 0, Index, RetSize) == 0)
+				{
+					return NULL;
+				}
+
+				Index++;
+				RetSize++;
+			}
+
+			else
+			{
+				if (MakeToken(&RetVal, IDENTIFIER, T_NONE, strdup(Tokens[i]), strlen(Tokens[i]) + 1, Index, RetSize) == 0)
+				{
+					return NULL;
+				}
+
+				Index++;
+				RetSize++;
+			}
+		}
+
+		free(Tokens[i]);
 	}
 
+
 	*OutSize = RetSize;
+	free(Tokens);
 
 	return RetVal;
+}
+
+void FreeTokens(Token* Tokens, int TokenSize)
+{
+	for (int i = 0; i < TokenSize; i++)
+	{
+		if (Tokens[i].Value != NULL)
+		{
+			free(Tokens[i].Value);
+		}
+	}
+
+	free(Tokens);
+}
+
+Token* FullLex(const char* Source, int* TokenSize)
+{
+	int StringTokenSize = 0;
+	char** StringTokens = Tokenize(Source, &StringTokenSize);
+
+	//Argument 1, String Tokens, Argument 2, size of string tokens, Argument 3, Output Variable, Token Array Length
+	Token* Tokens = Lex(StringTokens, StringTokenSize, TokenSize);
+
+	return Tokens;
 }
