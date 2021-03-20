@@ -1,4 +1,5 @@
 #include "Lexer.h"
+#include "Parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 //little endian
@@ -27,22 +28,10 @@ int main()
 		fclose(File);
 	}
 
-	int Size;
 	int TokenSize;
-	char** E = Tokenize("printf();", &Size);
 
-	Token* T = Lex(E, Size, &TokenSize);
+	Token* Tokens = FullLex("test() ", &TokenSize);
 
-	for (int i = 0; i < Size; i++)
-	{
-		printf("%s\n",E[i]);
-		if (E[i] != NULL)
-		{
-			free(E[i]);
-		}
-	}
-
-	free(E);
-	free(T);
+	FreeTokens(Tokens, TokenSize);
 	return 0;
 }
