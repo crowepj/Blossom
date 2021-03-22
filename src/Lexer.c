@@ -123,7 +123,7 @@ char** Tokenize(const char* Source, int* Size)
 }
 
 //Internal helper function for neater code
-int MakeToken(Token** TokenArray, TokenEnum TokenE, TypeEnum Type, void* Value, int TypeSize, int Index, int TokenArraySize)
+int MakeToken(Token** TokenArray, TokenEnum TokenE, enum AstVariableType Type, AstValue* Value, int TypeSize, int Index, int TokenArraySize)
 {
 	Token* TempPtr = realloc(*TokenArray, (TokenArraySize + 1) * sizeof(Token));
 
@@ -137,8 +137,9 @@ int MakeToken(Token** TokenArray, TokenEnum TokenE, TypeEnum Type, void* Value, 
 	*TokenArray = TempPtr;
 	(*TokenArray)[Index].Token = TokenE;
 	(*TokenArray)[Index].Type = Type;
-	(*TokenArray)[Index].Value = Value;
-	(*TokenArray)[Index].Size = TypeSize;
+
+	if (Value != NULL)
+		(*TokenArray)[Index].Value = *Value;
 
 	return 1;
 }
@@ -163,7 +164,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 		//Lots of if statements
 		if (strcmp(Tokens[i], "var") == 0)
 		{
-			if (MakeToken(&RetVal, VAR, T_NONE, NULL, 0, Index, RetSize) == 0)
+			if (MakeToken(&RetVal, VAR, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -174,7 +175,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 		else if (strcmp(Tokens[i], ":") == 0 && strcmp(Tokens[i + 1], "=") == 0)
 		{
-			if (MakeToken(&RetVal, EQUAL, T_NONE, NULL, 0, Index, RetSize) == 0)
+			if (MakeToken(&RetVal, EQUAL, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -186,7 +187,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 		else if (strcmp(Tokens[i], "func") == 0)
 		{
-			if (MakeToken(&RetVal, FUNCTION, T_NONE, NULL, 0, Index, RetSize) == 0)
+			if (MakeToken(&RetVal, FUNCTION, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -197,7 +198,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 		else if (strcmp(Tokens[i], "int") == 0)
 		{
-			if (MakeToken(&RetVal, TYPE, T_INT, NULL, 0, Index, RetSize) == 0)
+			if (MakeToken(&RetVal, TYPE, AST_INTEGER, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -209,7 +210,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 		//C string
 		else if (strcmp(Tokens[i], "cstr") == 0)
 		{
-			if (MakeToken(&RetVal, TYPE, T_STRING, NULL, 0, Index, RetSize) == 0)
+			if (MakeToken(&RetVal, TYPE, AST_STRING, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -220,7 +221,18 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 		else if (strcmp(Tokens[i], ";") == 0)
 		{
-			if (MakeToken(&RetVal, SEMICOLON, T_NONE, NULL, 0, Index, RetSize) == 0)
+			if (MakeToken(&RetVal, SEMICOLON, AST_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
+		else if (strcmp(Tokens[i], ",") == 0)
+		{
+			if (MakeToken(&RetVal, COMMA, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -231,7 +243,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 		else if (strcmp(Tokens[i], "(") == 0)
 		{
-			if (MakeToken(&RetVal, OPEN_BRACKET, T_NONE, NULL, 0, Index, RetSize) == 0)
+			if (MakeToken(&RetVal, OPEN_BRACKET, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -242,7 +254,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 		else if (strcmp(Tokens[i], ")") == 0)
 		{
-			if (MakeToken(&RetVal, CLOSE_BRACKET, T_NONE, NULL, 0, Index, RetSize) == 0)
+			if (MakeToken(&RetVal, CLOSE_BRACKET, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -263,7 +275,11 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 				//If the last character is an open bracket, we don't want that in the identifier, so set it to a null character
 				Tokens[i][strlen(Tokens[i]) - 1] = '\0';
 
-				if (MakeToken(&RetVal, IDENTIFIER, T_NONE, strdup(Tokens[i]), strlen(Tokens[i]) + 1, Index, RetSize) == 0)
+				AstValue val;
+				val.Value.s = strdup(Tokens[i]);
+				val.Type = AST_STRING;
+
+				if (MakeToken(&RetVal, IDENTIFIER, AST_IDENTIFIER, &val, strlen(Tokens[i]) + 1, Index, RetSize) == 0)
 				{
 					return NULL;
 				}
@@ -271,7 +287,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 				Index++;
 				RetSize++;
 
-				if (MakeToken(&RetVal, OPEN_BRACKET, T_NONE, NULL, 0, Index, RetSize) == 0)
+				if (MakeToken(&RetVal, OPEN_BRACKET, AST_NONE, NULL, 0, Index, RetSize) == 0)
 				{
 					return NULL;
 				}
@@ -282,7 +298,11 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 			else
 			{
-				if (MakeToken(&RetVal, IDENTIFIER, T_NONE, strdup(Tokens[i]), strlen(Tokens[i]) + 1, Index, RetSize) == 0)
+				AstValue val;
+				val.Value.s = strdup(Tokens[i]);
+				val.Type = AST_STRING;
+
+				if (MakeToken(&RetVal, IDENTIFIER, AST_NONE, &val, strlen(Tokens[i]) + 1, Index, RetSize) == 0)
 				{
 					return NULL;
 				}
@@ -306,9 +326,9 @@ void FreeTokens(Token* Tokens, int TokenSize)
 {
 	for (int i = 0; i < TokenSize; i++)
 	{
-		if (Tokens[i].Value != NULL)
+		if (Tokens[i].Value.Type == AST_STRING)
 		{
-			free(Tokens[i].Value);
+			free(Tokens[i].Value.Value.s);
 		}
 	}
 
