@@ -4,7 +4,7 @@ WattLang is a compiled programming language written in C. It is partially inspir
 ```
 use "std/io";
 
-func factorial(var number : int) 
+func factorial(var number : int) -> int
 {
   if (number > 0) 
   {
