@@ -30,8 +30,15 @@ int main()
 
 	int TokenSize;
 
-	Token* Tokens = FullLex("test() ", &TokenSize);
+	Token* Tokens = FullLex("test(4542) ", &TokenSize);
+	struct AST SyntaxTree;
 
+	printf("OUT\n");
+
+	AST_Initialize(&SyntaxTree);
+	AST_Generate(&SyntaxTree, Tokens, TokenSize);
+
+	AST_Free(&SyntaxTree);
 	FreeTokens(Tokens, TokenSize);
 	return 0;
 }
