@@ -1,5 +1,6 @@
 #pragma once
-#include "DynamicArray.h"
+#include "Tokens.h"
+#include "LexerParserDependencies.h"
 
 enum AstNodeType
 {
@@ -8,23 +9,7 @@ enum AstNodeType
 	VariableDeclaration,
 	VariableDefinition,
 	ConditionalStatement,
-};
-
-enum AstNodeObjectType
-{
-	//Primitives
-	AST_INTEGER,
-	AST_STRING,
-	AST_CHAR,
-
-	//Other
-	CUSTOM_OBJECT,
-};
-
-struct WattObject
-{
-	enum AstNodeObjectType Type;
-	void* Value;
+	AstValueNode,
 };
 
 struct AstNode
@@ -32,16 +17,22 @@ struct AstNode
 	struct AstNode* Left;
 	struct AstNode* Right;
 
-	struct DynamicArray* Parameters;
+	AstValue* Parameters;
+	int ParameterLength;
+
+	//If not initialized to NULL then this will be used as a container of the statements in a block of code
+	struct AstNode** Body;
+	int BodyLength;
 };
 
 //One AST = One Function
 struct AST
 {
-	//DynamicArray is Type <AstNode>
 	char* Name;
-	struct DynamicArray Nodes;
+	struct AstNode** Nodes;
+	int NodeLength;
 };
 
 void AST_Initialize(struct AST* This);
-void AST_Generate(struct AST* This, struct DynamicArray* Tokens);
+void AST_Generate(struct AST* This, Token* Tokens, int TokenSize);
+void AST_Free(struct AST* This);
