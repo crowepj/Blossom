@@ -58,6 +58,8 @@ int concat(char c, char** destination)
 	return 1;
 }
 
+
+//Given Buffer, add it to the array of tokens
 int Split(char*** Array, int* ArrayIndex, int* ArraySize, char** Buffer)
 {
 	//Reallocate array with enough capacity to store pointer to string
