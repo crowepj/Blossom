@@ -24,7 +24,6 @@ void AST_Parse_Argument(struct AST* This, Token* Tokens, int* Index, int TokensS
 
 		if (Current.Token == VALUE)
 		{
-			printf("IMA VALUE YO DO\n");
 			if (Next != NULL && (*Next).Token != CLOSE_BRACKET && (*Next).Token != COMMA)
 			{
 				printf("Expected Comma or Closing bracket after function call argument");
