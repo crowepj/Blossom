@@ -5,6 +5,17 @@
 #include <stdio.h>
 #include "Lexer.h"
 
+int is_int(char* str)
+{
+	for (int i = 0; i < strlen(str); i++)
+	{
+		if (!isdigit(str[i]))
+			return 0;
+	}
+
+	return 1;
+}
+
 //For checking if we should split token
 int isdelimeter(char c)
 {
@@ -47,6 +58,34 @@ int concat(char c, char** destination)
 	return 1;
 }
 
+int Split(char*** Array, int* ArrayIndex, int* ArraySize, char** Buffer)
+{
+	//Reallocate array with enough capacity to store pointer to string
+	*ArraySize = (*ArraySize) + 1;
+	char** ArrTemp = realloc(*Array, (*ArraySize) * sizeof(char**));
+
+	if (ArrTemp != NULL)
+	{
+		//Realloc was successful so set array to it
+		*Array = ArrTemp;
+
+		//strdup calls malloc in its internal implementation
+		(*Array)[*ArrayIndex] = strdup(*Buffer);
+
+		//printf("Array: %s\nIndex: %i\n", Array[ArrayIndex], ArrayIndex);
+	}
+
+	//Otherwise, set it to NULL
+	else
+	{
+		(*Array)[*ArrayIndex] = NULL;
+	}
+
+	*ArrayIndex += 1;
+	//This is the same as memsetting it to 0, this is more efficient because functions like strcmp only go up to a null character, meaning setting the first character is sufficient
+	(*Buffer)[0] = '\0';
+}
+
 char** Tokenize(const char* Source, int* Size)
 {
 	//Array of strings
@@ -82,34 +121,21 @@ char** Tokenize(const char* Source, int* Size)
 			//Not interested if the buffer is empty
 			else if(strcmp(Buffer, "") == 0)
 			{
-				continue;
+				printf("DEBUG\n");
+				concat(CurrentCharacter, &Buffer);
 			}
 
-			//Reallocate array with enough capacity to store pointer to string
-			ArraySize++;
-			char** ArrTemp = realloc(Array, ArraySize * sizeof(char**));
+			Split(&Array, &ArrayIndex, &ArraySize, &Buffer);
 
-			if (ArrTemp != NULL)
-			{
-				//Realloc was successful so set array to it
-				Array = ArrTemp;
+			continue;
+		}
 
-				//strdup calls malloc in its internal implementation
-				Array[ArrayIndex] = strdup(Buffer);
+		//FIXME Check that I + 1 < strlen(Source);
 
-				//printf("Array: %s\nIndex: %i\n", Array[ArrayIndex], ArrayIndex);
-			}
-
-			//Otherwise, set it to NULL
-			else
-			{
-				Array[ArrayIndex] = NULL;
-			}
-
-			ArrayIndex++;
-			//This is the same as memsetting it to 0, this is more efficient because functions like strcmp only go up to a null character, meaning setting the first character is sufficient
-			Buffer[0] = '\0';
-
+		else if (isdelimeter(Source[i + 1]) && !InString)
+		{
+			concat(CurrentCharacter, &Buffer);
+			Split(&Array, &ArrayIndex, &ArraySize, &Buffer);
 			continue;
 		}
 
@@ -161,6 +187,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 	for (int i = 0; i < Size; i++)
 	{
+		printf("Token: %s\n", Tokens[i]);
 		//Lots of if statements
 		if (strcmp(Tokens[i], "var") == 0)
 		{
@@ -255,6 +282,22 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 		else if (strcmp(Tokens[i], ")") == 0)
 		{
 			if (MakeToken(&RetVal, CLOSE_BRACKET, AST_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
+		else if (is_int(Tokens[i]))
+		{
+			AstValue Value;
+			Value.Type = AST_INTEGER;
+			Value.Value.i = atoi(Tokens[i]);
+			Value.Type = AST_INTEGER;
+
+			if (MakeToken(&RetVal, VALUE, AST_INTEGER, &Value, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
