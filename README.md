@@ -23,5 +23,3 @@ func main()
 }
 
 ```
-
-Contributors are appreciated, please read contributing.md first
