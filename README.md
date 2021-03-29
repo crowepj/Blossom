@@ -1,5 +1,5 @@
-# WattLang
-WattLang is a compiled programming language written in C. It is partially inspired by ADA. Currently it is still in development (Developing Parser), an example of what factorial might look like when finished:
+# Sap
+Sap is a compiled programming language written in C. It is partially inspired by ADA. Currently it is still in development (Developing Parser), an example of what factorial might look like when finished:
 
 ```
 use "std/io";
@@ -23,5 +23,3 @@ func main()
 }
 
 ```
-
-Contributors are appreciated, please read contributing.md first
