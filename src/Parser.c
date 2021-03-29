@@ -11,7 +11,7 @@ void AST_Free(struct AST* This);
 void AST_Parse_Argument(struct AST* This, Token* Tokens, int* Index, int TokensSize, struct AstNode* Call)
 {
 	//Prevent segfaults by checking we're not going over the limit of the array
-	while (*Index < TokensSize)
+	while (*Index < TokensSize && Tokens[*Index].Token != SEMICOLON)
 	{
 		Token Current = Tokens[*Index];
 		Token* Next = NULL;
@@ -22,11 +22,11 @@ void AST_Parse_Argument(struct AST* This, Token* Tokens, int* Index, int TokensS
 			Next = &Tokens[Index[0] + 1];
 		}
 
-		if (Current.Token == VALUE)
+		if (Current.Token == VALUE || Current.Token == IDENTIFIER)
 		{
 			if (Next != NULL && (*Next).Token != CLOSE_BRACKET && (*Next).Token != COMMA)
 			{
-				printf("Expected Comma or Closing bracket after function call argument");
+				printf("Expected Comma or Closing bracket after function call argument\n");
 				return;
 			}
 
@@ -49,13 +49,40 @@ void AST_Parse_Argument(struct AST* This, Token* Tokens, int* Index, int TokensS
 			Call->Parameters[Call->ParameterLength] = Value;
 			Call->ParameterLength++;
 
-			//Done with this value, skip over it and its comma
-			*Index += 2;
-
+			*Index += 1;
 		}
 
 		*Index += 1;
 	}
+}
+
+void AST_Parse_Use(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+{
+	char* ModuleNameString = Tokens[*Index].Value.Value.s;
+
+	struct AstNode* Node = malloc(sizeof(struct AstNode));
+	Node->Left = NULL;
+	Node->Right = NULL;
+	Node->Type = Using;
+
+	AstValue ModuleName;
+	ModuleName.Value.s = strdup(ModuleNameString);
+	ModuleName.Type = AST_IDENTIFIER;
+
+	//Allocate enough space for parameters, and set it
+	Node->Parameters = malloc(sizeof(AstValue));
+	//Indexing by 0 is the same as *(Node->Parameters), it's just neater
+	Node->Parameters[0] = ModuleName;
+	Node->ParameterLength = 1;
+
+	Node->Body = NULL;
+	Node->BodyLength = 0;
+
+	//Reallocate enough space for nodes and append
+	This->Nodes = realloc(This->Nodes, (This->NodeLength * sizeof(struct AstNode*)) + sizeof(struct AstNode*));
+	This->Nodes[This->NodeLength] = Node;
+
+	This->NodeLength = This->NodeLength + 1;
 }
 
 void AST_Parse_Identifier(struct AST* This, Token* Tokens, int* Index, int TokensSize)
@@ -75,11 +102,11 @@ void AST_Parse_Identifier(struct AST* This, Token* Tokens, int* Index, int Token
 		//If it's just an open bracket and a close bracket it's a function with no arguments meaning no extra Parsing has to be done
 		if (NextToken.Token == CLOSE_BRACKET)
 		{
-			printf("No parameter function call\n");
 			//See Parser.h
 			struct AstNode* Node = malloc(sizeof(struct AstNode));
 			Node->Left = NULL;
 			Node->Right = NULL;
+			Node->Type = FunctionCall;
 
 			//First parameter of a function call is the function name
 			AstValue FunctionName;
@@ -109,6 +136,8 @@ void AST_Parse_Identifier(struct AST* This, Token* Tokens, int* Index, int Token
 			struct AstNode* Node = malloc(sizeof(struct AstNode));
 			Node->Left = NULL;
 			Node->Right = NULL;
+			Node->Type = FunctionCall;
+
 			Node->Body = NULL;
 			Node->BodyLength = 0;
 
@@ -128,13 +157,22 @@ void AST_Parse_Identifier(struct AST* This, Token* Tokens, int* Index, int Token
 			This->Nodes = realloc(This->Nodes, (This->NodeLength * sizeof(struct AstNode*)) + sizeof(struct AstNode*));
 			This->Nodes[This->NodeLength] = Node;
 
+			This->NodeLength += 1;
+
 			AST_Parse_Argument(This, Tokens, Index, TokensSize, Node);
 		}
 	}
 }
 
-void AST_Parse_Var(struct AST* This, Token* Tokens, int* Index)
+void AST_Parse_FunctionDefinition(struct AST* This, Token* Tokens, int* Index, int TokensSize)
 {
+	printf("Function Definition: %s\n", Tokens[(*Index) + 1].Value.Value.s);
+	//TODO Check type of token before getting value
+	char* FunctionNameString = Tokens[(*Index) + 1].Value.Value.s;
+	//TODO Make this actually parse stuff
+	*Index += 2;
+
+	This->Name = FunctionNameString;
 }
 
 void AST_Initialize(struct AST* This)
@@ -154,8 +192,12 @@ void AST_Generate(struct AST* This, Token* Tokens, int TokenSize)
 			case IDENTIFIER:
 				AST_Parse_Identifier(This, Tokens, &i, TokenSize);
 				break;
-			case VAR:
-				printf("\n\nVARIABLE\n\n", Current.Token);
+			case FUNCTION:
+				AST_Parse_FunctionDefinition(This, Tokens, &i, TokenSize);
+				break;
+			case USE:
+				printf("USE PARSER\n");
+				AST_Parse_Use(This, Tokens, &i, TokenSize);
 				break;
 			default:
 				break;

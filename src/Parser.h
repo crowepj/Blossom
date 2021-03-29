@@ -5,15 +5,18 @@
 enum AstNodeType
 {
 	FunctionCall,
-	FunctionDeclaration,
+	FunctionDef,
 	VariableDeclaration,
 	VariableDefinition,
 	ConditionalStatement,
 	AstValueNode,
+	Using,
 };
 
 struct AstNode
 {
+	enum AstNodeType Type;
+
 	struct AstNode* Left;
 	struct AstNode* Right;
 
