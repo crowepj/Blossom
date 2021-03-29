@@ -164,6 +164,8 @@ void AST_Parse_Identifier(struct AST* This, Token* Tokens, int* Index, int Token
 	}
 }
 
+
+//TODO Needs more work
 void AST_Parse_FunctionDefinition(struct AST* This, Token* Tokens, int* Index, int TokensSize)
 {
 	printf("Function Definition: %s\n", Tokens[(*Index) + 1].Value.Value.s);
@@ -196,7 +198,6 @@ void AST_Generate(struct AST* This, Token* Tokens, int TokenSize)
 				AST_Parse_FunctionDefinition(This, Tokens, &i, TokenSize);
 				break;
 			case USE:
-				printf("USE PARSER\n");
 				AST_Parse_Use(This, Tokens, &i, TokenSize);
 				break;
 			default:
