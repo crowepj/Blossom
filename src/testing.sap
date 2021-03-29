@@ -1,0 +1,7 @@
+use "std/io"
+
+func _start()
+{
+  printf("test", 1);
+  io::getc();
+}
