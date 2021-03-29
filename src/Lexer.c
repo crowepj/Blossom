@@ -19,7 +19,7 @@ int is_int(char* str)
 //For checking if we should split token
 int isdelimeter(char c)
 {
-	if (c == ' ' || c == '(' || c == ')' || c == '=' || c == '\"' || c == '\'' || c == '\0' || c == '\n' || c == ';' || c == ':')
+	if (c == ' ' || c == '(' || c == ')' || c == '=' || c == '\"' || c == '\'' || c == '\0' || c == '\n' || c == ';' || c == ',')
 	{
 		return 1;
 	}
@@ -88,7 +88,7 @@ int Split(char*** Array, int* ArrayIndex, int* ArraySize, char** Buffer)
 	(*Buffer)[0] = '\0';
 }
 
-char** Tokenize(const char* Source, int* Size)
+char** Tokenize(const char* Source, int* Size, int InLen)
 {
 	//Array of strings
 	//For explanation of malloc(0) see Lex function
@@ -102,9 +102,12 @@ char** Tokenize(const char* Source, int* Size)
 
 	int InString = 0;
 
-	for (int i = 0; i < strlen(Source); i++)
+	for (int i = 0; i < InLen; i++)
 	{
 		char CurrentCharacter = Source[i];
+
+		if (CurrentCharacter == '\n' && !InString)
+			continue;
 
 		//Have we hit a quote, is it escaped?, if not, we're either completing a string or starting a string
 		if (CurrentCharacter == '\"' && Source[i - 1] != '\\')
@@ -123,8 +126,7 @@ char** Tokenize(const char* Source, int* Size)
 			//Not interested if the buffer is empty
 			else if(strcmp(Buffer, "") == 0)
 			{
-				printf("DEBUG\n");
-				concat(CurrentCharacter, &Buffer);
+				continue;
 			}
 
 			Split(&Array, &ArrayIndex, &ArraySize, &Buffer);
@@ -136,7 +138,12 @@ char** Tokenize(const char* Source, int* Size)
 
 		else if (isdelimeter(Source[i + 1]) && !InString)
 		{
-			concat(CurrentCharacter, &Buffer);
+			if (CurrentCharacter != ' ')
+				concat(CurrentCharacter, &Buffer);
+			if (strcmp(Buffer,"") == 0)
+				continue;
+
+
 			Split(&Array, &ArrayIndex, &ArraySize, &Buffer);
 			continue;
 		}
@@ -189,7 +196,6 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 	for (int i = 0; i < Size; i++)
 	{
-		printf("Token: %s\n", Tokens[i]);
 		//Lots of if statements
 		if (strcmp(Tokens[i], "var") == 0)
 		{
@@ -248,6 +254,18 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 			RetSize++;
 		}
 
+		else if (strcmp(Tokens[i], "use") == 0)
+		{
+			printf("LEX USE");
+			if (MakeToken(&RetVal, USE, AST_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
 		else if (strcmp(Tokens[i], ";") == 0)
 		{
 			if (MakeToken(&RetVal, SEMICOLON, AST_NONE, NULL, 0, Index, RetSize) == 0)
@@ -292,14 +310,51 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 			RetSize++;
 		}
 
+		else if (strcmp(Tokens[i], "{") == 0)
+		{
+			if (MakeToken(&RetVal, OPEN_CURLY_BRACKET, AST_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
+		else if (strcmp(Tokens[i], "}") == 0)
+		{
+			if (MakeToken(&RetVal, CLOSE_CURLY_BRACKET, AST_NONE, NULL, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
 		else if (is_int(Tokens[i]))
 		{
 			AstValue Value;
 			Value.Type = AST_INTEGER;
 			Value.Value.i = atoi(Tokens[i]);
-			Value.Type = AST_INTEGER;
 
 			if (MakeToken(&RetVal, VALUE, AST_INTEGER, &Value, 0, Index, RetSize) == 0)
+			{
+				return NULL;
+			}
+
+			Index++;
+			RetSize++;
+		}
+
+		else if (Tokens[i][0] == '\"')
+		{
+			printf("Token: %s\n", Tokens[i]);
+			AstValue Value;
+			Value.Type = AST_STRING;
+			Value.Value.s = strdup(Tokens[i]);
+
+			if (MakeToken(&RetVal, VALUE, AST_STRING, &Value, strlen(Value.Value.s) + 1, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
@@ -347,7 +402,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 				val.Value.s = strdup(Tokens[i]);
 				val.Type = AST_STRING;
 
-				if (MakeToken(&RetVal, IDENTIFIER, AST_NONE, &val, strlen(Tokens[i]) + 1, Index, RetSize) == 0)
+				if (MakeToken(&RetVal, IDENTIFIER, AST_IDENTIFIER, &val, strlen(Tokens[i]) + 1, Index, RetSize) == 0)
 				{
 					return NULL;
 				}
@@ -380,10 +435,10 @@ void FreeTokens(Token* Tokens, int TokenSize)
 	free(Tokens);
 }
 
-Token* FullLex(const char* Source, int* TokenSize)
+Token* FullLex(const char* Source, int Len, int* TokenSize)
 {
 	int StringTokenSize = 0;
-	char** StringTokens = Tokenize(Source, &StringTokenSize);
+	char** StringTokens = Tokenize(Source, &StringTokenSize, Len);
 
 	//Argument 1, String Tokens, Argument 2, size of string tokens, Argument 3, Output Variable, Token Array Length
 	Token* Tokens = Lex(StringTokens, StringTokenSize, TokenSize);
