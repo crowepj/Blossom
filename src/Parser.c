@@ -58,7 +58,7 @@ void AST_Parse_Argument(struct AST* This, Token* Tokens, int* Index, int TokensS
 
 void AST_Parse_Use(struct AST* This, Token* Tokens, int* Index, int TokensSize)
 {
-	char* ModuleNameString = Tokens[*Index].Value.Value.s;
+	char* ModuleNameString = Tokens[*Index += 1].Value.Value.s;
 
 	struct AstNode* Node = malloc(sizeof(struct AstNode));
 	Node->Left = NULL;
@@ -235,10 +235,9 @@ void Free_Node_Recursive(struct AstNode* Node)
 	{
 		for (int i = 0; i < Node->ParameterLength; i++)
 		{
-			//The only type that needs to be freed is string
-			if (Node->Parameters[i].Type == AST_STRING)
+			//The only type that needs to be freed is string/identifier
+			if (Node->Parameters[i].Type == AST_STRING || Node->Parameters[i].Type == AST_IDENTIFIER)
 				free(Node->Parameters[i].Value.s);
-				asm volatile("nop");
 		}
 
 		free(Node->Parameters);
@@ -249,7 +248,7 @@ void Free_Node_Recursive(struct AstNode* Node)
 
 void AST_Free(struct AST* This)
 {
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < This->NodeLength; i++)
 	{
 		struct AstNode* CurrentNode = This->Nodes[i];
 		Free_Node_Recursive(CurrentNode);
