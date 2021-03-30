@@ -5,33 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//little endian
 int main()
 {
-	//NOTE TO FUTURE SELF, SEGFAULT IS IN PARSER USE
-	FILE* File = fopen("art","r");
-
-	if (File != NULL)
-	{
-		fseek(File, 0, SEEK_END);
-		long size = ftell(File);
-		fseek(File, 0, SEEK_SET);
-
-		char* str = malloc(size + 1);
-
-		if (str != NULL)
-		{
-			if (fread(str, 1, size, File) != NULL && str != NULL)
-			{
-				printf(str);
-			}
-
-			free(str);
-		}
-
-		fclose(File);
-	}
-
 	char* SourceFileCode = malloc(2048);
 	FILE* SourceFile = fopen("testing.sap", "r");
 
