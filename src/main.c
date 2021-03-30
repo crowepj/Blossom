@@ -53,7 +53,9 @@ int main()
 	int OpLength;
 	struct IntermediateRepresentationOp* Opcodes = GenerateIR(&SyntaxTree, &OpLength);
 
-	Assemble(Opcodes, OpLength);
+	char* final = Assemble(Opcodes, OpLength);
+	printf(final);
+	free(final);
 
 	FreeIR(Opcodes, OpLength);
 	AST_Free(&SyntaxTree);
