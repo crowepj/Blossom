@@ -194,6 +194,6 @@ char* Assemble(struct IntermediateRepresentationOp* Opcodes, int Size)
   }
 
   strcat(Buffer, FunctionEnd);
-  printf("\n");
-  printf(Buffer);
+
+  return Buffer;
 }
