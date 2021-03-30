@@ -426,7 +426,7 @@ void FreeTokens(Token* Tokens, int TokenSize)
 {
 	for (int i = 0; i < TokenSize; i++)
 	{
-		if (Tokens[i].Value.Type == AST_STRING)
+		if (Tokens[i].Value.Type == AST_STRING || Tokens[i].Value.Type == AST_IDENTIFIER)
 		{
 			free(Tokens[i].Value.Value.s);
 		}
