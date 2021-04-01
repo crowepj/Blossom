@@ -27,19 +27,22 @@ char** String_Constants = NULL;
 int String_Constants_Length = 0;
 
 //prepend assumes parameters passed are malloc'd
-char* prepend(char* original, char* prepend)
+char* prepend(char** original, char* prepend)
 {
-  char* temp = realloc(original, strlen(prepend) + 1 + strlen(original));
+  //FIXME This is a hack and should be changed when the problem is found
+  char* temp = realloc(*original, strlen(prepend) + 40 + strlen(*original));
 
   if (temp == NULL)
   {
     free(prepend);
-    free(original);
+    free(*original);
     return NULL;
   }
 
+  *original = temp;
+
   //Move original up
-  memmove(temp + strlen(prepend), original, strlen(original));
+  memmove(temp + strlen(prepend), *original, strlen(*original));
   memcpy(temp, prepend, strlen(prepend));
 
   return temp;
@@ -148,13 +151,36 @@ int Asm_GenerateFunctionDef(struct IntermediateRepresentationOp* Opcodes, int In
   return 1;
 }
 
+int Asm_GenerateUse(struct IntermediateRepresentationOp* Opcodes, int Index, int Size, char** Buffer)
+{
+  char* LibraryName = Opcodes[Index].Parameters[0]->V.s;
+
+  FILE* LibraryFile = fopen(LibraryName, "r");
+
+  if (LibraryFile == NULL)
+    return -1;
+
+  char* LibContent = malloc(4096);
+
+  if (LibContent == NULL)
+    return -1;
+
+  fread(LibContent, 4096, 1, LibraryFile);
+
+  //TODO Take char** as buffer so that its address can be changed if needed
+  prepend(Buffer, LibContent);
+  free(LibContent);
+
+  return 1;
+}
+
 char* Assemble(struct IntermediateRepresentationOp* Opcodes, int Size)
 {
   //For setting up and cleaning stack
   char* FunctionStart = "\tpush rbp\n\r\tmov rbp, rsp\n\r";
   char* FunctionEnd = "\tpop rbp\n\r\tret\n\r";
 
-  char* Buffer = malloc(1024);
+  char* Buffer = malloc(4096);
 
   if (Buffer == NULL)
     return NULL;
@@ -174,6 +200,9 @@ char* Assemble(struct IntermediateRepresentationOp* Opcodes, int Size)
         Asm_GenerateFunctionDef(Opcodes, i, Size, Buffer);
         strcat(Buffer, FunctionStart);
         break;
+      case USE:
+        Asm_GenerateUse(Opcodes, i, Size, &Buffer);
+        break;
     }
   }
 
@@ -190,8 +219,10 @@ char* Assemble(struct IntermediateRepresentationOp* Opcodes, int Size)
 
     sprintf(Expression, "%s: db %s,0\n", ConstantID, String_Constants[i]);
 
-    prepend(Buffer, Expression);
+    prepend(&Buffer, Expression);
   }
+
+  printf("After for loop:\n%s\n\n", Buffer);
 
   strcat(Buffer, FunctionEnd);
 
