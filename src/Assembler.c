@@ -221,9 +221,7 @@ char* Assemble(struct IntermediateRepresentationOp* Opcodes, int Size)
 
     prepend(&Buffer, Expression);
   }
-
-  printf("After for loop:\n%s\n\n", Buffer);
-
+  
   strcat(Buffer, FunctionEnd);
 
   return Buffer;
