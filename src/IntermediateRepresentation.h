@@ -9,6 +9,9 @@ enum IntermediateRepresentationType
   IR_CHAR,
   IR_IDENT,
   IR_STRUCT,
+
+  //Used to signify failure, e.g. couldn't convert a type
+  IR_VAL_ERR
 };
 
 struct IntermediateRepresentationValue
@@ -34,6 +37,8 @@ enum IntermediateRepresentationInstruction
   CALL,
   FUNCDEF,
   IR_USE,
+  //Err opcode means an error occured in generating the IR, e.g. malloc failed
+  ERR,
 };
 
 struct IntermediateRepresentationOp

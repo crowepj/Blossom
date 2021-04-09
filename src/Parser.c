@@ -4,183 +4,209 @@
 #include <string.h>
 #include <stdio.h>
 
+//UTILITY
+
 //Prototype in case of a failure and it needs to be called in AST_Parse_xxxx
 void AST_Free(struct AST* This);
 
-//For parsing function arguments, it puts the arguments into the "Call" parameter
-void AST_Parse_Argument(struct AST* This, Token* Tokens, int* Index, int TokensSize, struct AstNode* Call)
+struct AstNode* MakeValueNode(AstValue value)
 {
-	//Prevent segfaults by checking we're not going over the limit of the array
-	while (*Index < TokensSize && Tokens[*Index].Token != SEMICOLON)
+	struct AstNode* value_node = malloc(sizeof(struct AstNode));
+
+	if (value_node == NULL)
+		return NULL;
+
+	value_node->Type = AstValueNode;
+	value_node->Children = NULL;
+
+	//If it's a string or identifier copy the value
+	if (value.Type == AST_STRING || value.Type == AST_IDENTIFIER)
+		value_node->Value.Value.s = strdup(value.Value.s);
+	else
+		value_node->Value = value;
+
+	return value_node;
+};
+
+//Append a value to a node's children
+unsigned char AppendChildNode(struct AstNode* target, struct AstNode* value)
+{
+	//Grow by one
+	struct AstNode** Temp = realloc(target->Children, (target->ChildrenLength + 1) * sizeof(struct AstNode));
+
+	if (!Temp)
+		return 1;
+
+	//realloc was successful so set the pointer
+	target->Children = Temp;
+	//Now set the node in the array
+	target->Children[target->ChildrenLength] = value;
+	//Update size
+	target->ChildrenLength++;
+
+	return 0;
+}
+
+//Misc
+struct AstNode* AST_Parse_Use(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+{
+
+}
+
+int expect_token(TokenEnum expected, Token* tokens, int* Index, const char* msg)
+{
+	if (tokens[*Index + 1].Token == expected)
 	{
-		Token Current = Tokens[*Index];
-		Token* Next = NULL;
+		*Index += 1;
+		return 1;
+	}
 
-		//Indexing by 0 is the same as (*Index)
-		if (Index[0] + 1 < TokensSize)
+	else
+	{
+		if (msg != NULL)
+			printf("%s\n", msg);
+		return 0;
+	}
+};
+
+int expect_type(enum AstVariableType expected, Token* tokens, int* Index, const char* msg)
+{
+	if (tokens[*Index + 1].Type == expected)
+	{
+		*Index += 1;
+		return 1;
+	}
+
+	else
+	{
+		if (msg != NULL)
+			printf("%s\n", msg);
+		return 0;
+	}
+};
+
+
+//Functions and Identifiers
+
+//For parsing function arguments
+int AST_Parse_Argument(Token* Tokens, int* Index, int TokensSize, struct AstNode* Call)
+{
+	while (*Index < TokensSize && Tokens[*Index].Token != CLOSE_BRACKET)
+	{
+		//Value token is a constant value (String, Float, Char)
+		if (expect_token(VALUE, Tokens, Index, NULL))
 		{
-			Next = &Tokens[Index[0] + 1];
-		}
+			struct AstNode* node = MakeValueNode(Tokens[*Index].Value);
 
-		if (Current.Token == VALUE || Current.Token == IDENTIFIER)
-		{
-			if (Next != NULL && (*Next).Token != CLOSE_BRACKET && (*Next).Token != COMMA)
-			{
-				printf("Expected Comma or Closing bracket after function call argument\n");
-				return;
-			}
+			if (node == NULL)
+				return -1;
 
-			AstValue Value = Current.Value;
-
-			//Reallocate to accomodate value
-			void* Temp = realloc(Call->Parameters, sizeof(AstValue) * (Call->ParameterLength + 1));
-
-			//TODO Add AST_Free here
-			if (Temp == NULL)
-			{
-				printf("Something went wrong, please try again\n");
-				return;
-			}
-
-			//realloc was successful so set it in the call node
-			Call->Parameters = Temp;
-
-			//Now set the parameter
-			Call->Parameters[Call->ParameterLength] = Value;
-			Call->ParameterLength++;
-
-			*Index += 1;
+			AppendChildNode(Call, node);
 		}
 
 		*Index += 1;
 	}
+
+	return 1;
 }
 
-void AST_Parse_Use(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+struct AstNode* AST_Parse_Function_Call(struct AST* This, Token* Tokens, int* Index, int TokensSize)
 {
-	char* ModuleNameString = Tokens[*Index += 1].Value.Value.s;
+	struct AstNode* NameNode = MakeValueNode(Tokens[*Index].Value);
 
-	struct AstNode* Node = malloc(sizeof(struct AstNode));
-	Node->Left = NULL;
-	Node->Right = NULL;
-	Node->Type = Using;
+	if (!NameNode)
+		return NULL;
 
-	AstValue ModuleName;
-	ModuleName.Value.s = strdup(ModuleNameString);
-	ModuleName.Type = AST_IDENTIFIER;
+	NameNode->Children = NULL;
+	NameNode->ChildrenLength = 0;
+	NameNode->Value.Type = AST_IDENTIFIER;
 
-	//Allocate enough space for parameters, and set it
-	Node->Parameters = malloc(sizeof(AstValue));
-	//Indexing by 0 is the same as *(Node->Parameters), it's just neater
-	Node->Parameters[0] = ModuleName;
-	Node->ParameterLength = 1;
+	struct AstNode* FunctionCallNode = malloc(sizeof(struct AstNode));
 
-	Node->Body = NULL;
-	Node->BodyLength = 0;
+	if (!FunctionCallNode)
+		return NULL;
 
-	//Reallocate enough space for nodes and append
-	This->Nodes = realloc(This->Nodes, (This->NodeLength * sizeof(struct AstNode*)) + sizeof(struct AstNode*));
-	This->Nodes[This->NodeLength] = Node;
+	FunctionCallNode->Type = FunctionCall;
+	FunctionCallNode->ChildrenLength = 0;
+	FunctionCallNode->Children = malloc(0);
 
-	This->NodeLength = This->NodeLength + 1;
+	//Append the node that contains the function name
+	AppendChildNode(FunctionCallNode, NameNode);
+	AST_Parse_Argument(Tokens, Index, TokensSize, FunctionCallNode);
+
+	return FunctionCallNode;
 }
 
-void AST_Parse_Identifier(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+struct AstNode* AST_Parse_Identifier(struct AST* This, Token* Tokens, int* Index, int TokensSize)
 {
-	//Access string member of union
-	char* FunctionNameString = Tokens[*Index].Value.Value.s;
-
-	Token NextToken = (Tokens[*(Index) + 1]);
-
-	//Expect opening bracket
-	if (NextToken.Token == OPEN_BRACKET)
+	if (Tokens[*Index + 1].Token == OPEN_BRACKET)
 	{
-		*Index = (*Index) + 1;
-
-		NextToken = (Tokens[(*Index) + 1]);
-
-		//If it's just an open bracket and a close bracket it's a function with no arguments meaning no extra Parsing has to be done
-		if (NextToken.Token == CLOSE_BRACKET)
-		{
-			//See Parser.h
-			struct AstNode* Node = malloc(sizeof(struct AstNode));
-			Node->Left = NULL;
-			Node->Right = NULL;
-			Node->Type = FunctionCall;
-
-			//First parameter of a function call is the function name
-			AstValue FunctionName;
-			FunctionName.Value.s = strdup(FunctionNameString);
-			FunctionName.Type = AST_STRING;
-
-			//Allocate enough space for parameters, and set it
-			Node->Parameters = malloc(sizeof(AstValue));
-			//Indexing by 0 is the same as *(Node->Parameters), it's just neater
-			Node->Parameters[0] = FunctionName;
-			Node->ParameterLength = 1;
-
-			Node->Body = NULL;
-			Node->BodyLength = 0;
-
-			//Reallocate enough space for nodes and append
-			This->Nodes = realloc(This->Nodes, (This->NodeLength * sizeof(struct AstNode*)) + sizeof(struct AstNode*));
-			This->Nodes[This->NodeLength] = Node;
-
-			This->NodeLength = This->NodeLength + 1;
-		}
-
-		else
-		{
-			//AstNode defined in Parser.h
-			//FIXME Check if malloc returns NULL
-			struct AstNode* Node = malloc(sizeof(struct AstNode));
-			Node->Left = NULL;
-			Node->Right = NULL;
-			Node->Type = FunctionCall;
-
-			Node->Body = NULL;
-			Node->BodyLength = 0;
-
-			//First parameter of a function call is the function name
-			AstValue FunctionName;
-			FunctionName.Value.s = strdup(FunctionNameString);
-			FunctionName.Type = AST_STRING;
-
-			//Allocate enough space for parameters, and set it
-			//	FIXME Check that the result of malloc is not NULL
-			Node->Parameters = malloc(sizeof(AstValue));
-			//Indexing by 0 is the same as *(Node->Parameters), it's just neater
-			Node->Parameters[0] = FunctionName;
-			Node->ParameterLength = 1;
-
-			// FIXME Check that the result of realloc is not NULL
-			This->Nodes = realloc(This->Nodes, (This->NodeLength * sizeof(struct AstNode*)) + sizeof(struct AstNode*));
-			This->Nodes[This->NodeLength] = Node;
-
-			This->NodeLength += 1;
-
-			AST_Parse_Argument(This, Tokens, Index, TokensSize, Node);
-		}
+		return AST_Parse_Function_Call(This, Tokens, Index, TokensSize);
 	}
+
+	return NULL;
 }
 
-
-//TODO Needs more work
-void AST_Parse_FunctionDefinition(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+unsigned char AST_Parse_FunctionDefinition(struct AST* This, Token* Tokens, int* Index, int TokensSize)
 {
-	printf("Function Definition: %s\n", Tokens[(*Index) + 1].Value.Value.s);
-	//TODO Check type of token before getting value
-	char* FunctionNameString = Tokens[(*Index) + 1].Value.Value.s;
-	//TODO Make this actually parse stuff
+	if (Tokens[*Index + 1].Value.Type != AST_STRING)
+		return 1;
+
+	This->Name = strdup(Tokens[*Index + 1].Value.Value.s);
+
 	*Index += 2;
 
-	This->Name = FunctionNameString;
+	return 0;
 }
+
+
+
+
+
+
+
+
+
+//Variables stuff
+
+
+//Parse a constant value like a float, int, string or char
+struct AstNode* AST_Parse_Variable_Constant(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+{
+
+}
+
+//Parse assigning a variable to another identifier (such as a function call, or just another variable)
+struct AstNode* AST_Parse_Variable_Identifier(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+{
+
+}
+
+//Parse bracket order e.g if we receive something like: var V := (1 + 1) * 2; Sort out the order and determine which functions to call
+struct AstNode* AST_Parse_Variable_Bracket_Order(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+{
+
+}
+
+struct AstNode* AST_Parse_Variable(struct AST* This, Token* Tokens, int* Index, int TokensSize)
+{
+
+}
+
+
+
+
+
+
+
+
+
 
 void AST_Initialize(struct AST* This)
 {
 	This->Nodes = malloc(0);
 	This->NodeLength = 0;
+	This->Name = NULL;
 }
 
 void AST_Generate(struct AST* This, Token* Tokens, int TokenSize)
@@ -192,13 +218,41 @@ void AST_Generate(struct AST* This, Token* Tokens, int TokenSize)
 		switch (Current.Token)
 		{
 			case IDENTIFIER:
-				AST_Parse_Identifier(This, Tokens, &i, TokenSize);
+			{
+				struct AstNode* node = AST_Parse_Identifier(This, Tokens, &i, TokenSize);
+
+				if (!node)
+				{
+					return;
+				}
+
+				struct AstNode** temp = realloc(This->Nodes, (This->NodeLength + 1) * sizeof(struct AstNode*));
+
+				if (!temp)
+				{
+					printf("Failed to allocate enough memory\n");
+					return;
+				}
+
+				This->Nodes = temp;
+				This->Nodes[This->NodeLength] = node;
+				This->NodeLength++;
+
 				break;
+			}
 			case FUNCTION:
-				AST_Parse_FunctionDefinition(This, Tokens, &i, TokenSize);
+			{
+				if (AST_Parse_FunctionDefinition(This, Tokens, &i, TokenSize))
+				{
+					printf("Expected identifier after keyword \"func\"\n");
+					return;
+				}
+
+				break;
+			}
 				break;
 			case USE:
-				AST_Parse_Use(This, Tokens, &i, TokenSize);
+				//AST_Parse_Use(This, Tokens, &i, TokenSize);
 				break;
 			default:
 				break;
@@ -209,38 +263,21 @@ void AST_Generate(struct AST* This, Token* Tokens, int TokenSize)
 //Recursive function to clean up nodes
 void Free_Node_Recursive(struct AstNode* Node)
 {
-	if (Node->Left != NULL)
+	if (Node->Children != NULL)
 	{
-		Free_Node_Recursive(Node->Left);
-		free(Node->Left);
-	}
-
-	if (Node->Right != NULL)
-	{
-		Free_Node_Recursive(Node->Right);
-		free(Node->Right);
-	}
-
-	if (Node->Body != NULL)
-	{
-		for (int i = 0; i < Node->BodyLength; i++)
+		for (int i = 0; i < Node->ChildrenLength; i++)
 		{
-			struct AstNode* Current = Node->Body[i];
+			struct AstNode* Current = Node->Children[i];
 			Free_Node_Recursive(Current);
 		}
 
-		free(Node->Body);
+		free(Node->Children);
 	}
-	if (Node->Parameters != NULL)
-	{
-		for (int i = 0; i < Node->ParameterLength; i++)
-		{
-			//The only type that needs to be freed is string/identifier
-			if (Node->Parameters[i].Type == AST_STRING || Node->Parameters[i].Type == AST_IDENTIFIER)
-				free(Node->Parameters[i].Value.s);
-		}
 
-		free(Node->Parameters);
+	if (Node->Value.Type == AST_STRING || Node->Value.Type == AST_IDENTIFIER)
+	{
+		printf("FREE IDENT\n");
+		free(Node->Value.Value.s);
 	}
 
 	free(Node);
@@ -255,4 +292,7 @@ void AST_Free(struct AST* This)
 	}
 
 	free(This->Nodes);
+
+	if (This->Name)
+		free(This->Name);
 };

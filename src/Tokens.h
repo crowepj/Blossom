@@ -15,6 +15,10 @@ typedef enum
 	COMMA,
 	SEMICOLON,
 	EQUAL,
+	PLUS,
+	MINUS,
+	ASTERISK,
+	FSLASH,
 	UNINITIALIZED = -1,
 	NULL_TOKEN = -2,
 } TokenEnum;

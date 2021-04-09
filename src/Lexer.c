@@ -208,7 +208,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 			RetSize++;
 		}
 
-		else if (strcmp(Tokens[i], ":") == 0 && strcmp(Tokens[i + 1], "=") == 0)
+		else if (strcmp(Tokens[i], ":") == 0 && strcmp(Tokens[i], "="))
 		{
 			if (MakeToken(&RetVal, EQUAL, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
@@ -256,7 +256,6 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 
 		else if (strcmp(Tokens[i], "use") == 0)
 		{
-			printf("LEX USE");
 			if (MakeToken(&RetVal, USE, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;

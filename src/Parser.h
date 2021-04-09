@@ -17,15 +17,10 @@ struct AstNode
 {
 	enum AstNodeType Type;
 
-	struct AstNode* Left;
-	struct AstNode* Right;
+	struct AstNode** Children;
+	int ChildrenLength;
 
-	AstValue* Parameters;
-	int ParameterLength;
-
-	//If not initialized to NULL then this will be used as a container of the statements in a block of code
-	struct AstNode** Body;
-	int BodyLength;
+	AstValue Value;
 };
 
 //One AST = One Function
