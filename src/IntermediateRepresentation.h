@@ -35,6 +35,7 @@ enum IntermediateRepresentationInstruction
   MUL,
   DIV,
   CALL,
+  V_ASSIGN,
   FUNCDEF,
   IR_USE,
   //Err opcode means an error occured in generating the IR, e.g. malloc failed
