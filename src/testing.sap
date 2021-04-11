@@ -1,2 +1,2 @@
 
-func test(){ pri(1);}
+func _start(){ var test = 3; }
