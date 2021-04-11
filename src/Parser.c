@@ -87,7 +87,7 @@ void AST_Generate(struct AST* This, Token* Tokens, int TokenSize)
 			case VAR:
 			{
 				struct AstNode* node = AST_Parse_Variable(This, Tokens, &i, TokenSize);
-				
+
 				if (!node)
 				{
 					return;
