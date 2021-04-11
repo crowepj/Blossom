@@ -62,12 +62,14 @@ int WriteSourceFile(char* FPath, char* Input, size_t InputLength)
 	return 1;
 }
 
-int main()
+int main(int argc, char** argv)
 {
+	char* entrypoint = argv[1];
+
 	char* SourceFileCode = NULL;
 	size_t len = 0;
 
-	ReadSourceFile("testing.sap", &SourceFileCode, &len);
+	ReadSourceFile("src/testing.sap", &SourceFileCode, &len);
 
 	int TokenSize;
 
@@ -83,13 +85,18 @@ int main()
 
 	char* assembled = Assemble(Opcodes, Opsize);
 
-	printf(assembled);
+
+	assembled = realloc(assembled, strlen(assembled) + 200);
+
+	strcat(assembled, "extern printf;");
+
+	WriteSourceFile("src/out/main.asm", assembled, strlen(assembled));
+	system("nasm src/out/main.asm -o src/out/main.o -f elf64; ld src/out/main.o -lc -dynamic-linker /usr/lib64/ld-linux-x86-64.so.2 -e _start -o a.out;");
 
 	FreeIR(Opcodes, Opsize);
 	AST_Free(&SyntaxTree);
 	FreeTokens(Tokens, TokenSize);
 	free(assembled);
 	free(SourceFileCode);
-	CleanupAssembler();
 	return 0;
 }
