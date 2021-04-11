@@ -26,28 +26,6 @@ char* ABI_Registers[] =
 char** String_Constants = NULL;
 int String_Constants_Length = 0;
 
-//prepend assumes parameters passed are malloc'd
-char* prepend(char** original, char* prepend)
-{
-  //FIXME This is a hack and should be changed when the problem is found
-  char* temp = realloc(*original, strlen(prepend) + 100 + strlen(*original));
-
-  if (temp == NULL)
-  {
-    free(prepend);
-    free(*original);
-    return NULL;
-  }
-
-  *original = temp;
-
-  //Move original up
-  memmove(temp + strlen(prepend), *original, strlen(*original));
-  memcpy(temp, prepend, strlen(prepend));
-
-  return temp;
-};
-
 char* GetValueString(struct IntermediateRepresentationValue Value)
 {
   //TODO change this size dynamically
@@ -60,12 +38,15 @@ char* GetValueString(struct IntermediateRepresentationValue Value)
     switch (Value.T)
     {
       case IR_INT:
+        printf("INTEGER\n");
+        printf("VALUE: %i\n", Value.V.i);
         sprintf(Buffer, "%i",Value.V.i);
         break;
       case IR_FLOAT:
         sprintf(Buffer, "%f",Value.V.f);
         break;
       case IR_STRING:
+        printf("STRING CONSTANT\n");
         if (String_Constants == NULL)
         {
           String_Constants = malloc(sizeof(char*));
@@ -92,6 +73,7 @@ char* GetValueString(struct IntermediateRepresentationValue Value)
         String_Constants_Length++;
         break;
       case IR_IDENT:
+        printf("IDENTIFIER\n");
         snprintf(Buffer, 128, Value.V.s);
         break;
     }
@@ -141,9 +123,14 @@ int Asm_GenerateFunctionCall(struct IntermediateRepresentationOp* Opcodes, int I
     free(ValueAsStr);
   }
 
-  strcat(Buffer, "\tcall ");
-  strcat(Buffer, opcode.Parameters[0]->V.s);
-  strcat(Buffer, "\n");
+  char* Temp = malloc(strlen(opcode.Parameters[0]->V.s) + 6 + 1 + 1);
+
+  if (!Temp)
+    return -1;
+
+  sprintf(Temp, "\tcall %s\n", opcode.Parameters[0]->V.s);
+  strcat(Buffer, Temp);
+  free(Temp);
 
   return 1;
 }
@@ -178,7 +165,7 @@ int Asm_GenerateUse(struct IntermediateRepresentationOp* Opcodes, int Index, int
 
   fread(LibContent, 4096, 1, LibraryFile);
 
-  prepend(Buffer, LibContent);
+  strcat(*Buffer, LibContent);
   free(LibContent);
 
   fclose(LibraryFile);
@@ -222,11 +209,10 @@ char* Assemble(struct IntermediateRepresentationOp* Opcodes, int Size)
         Asm_GenerateFunctionDef(Opcodes, i, Size, Buffer);
         strcat(Buffer, FunctionStart);
         break;
-      case USE:
-        Asm_GenerateUse(Opcodes, i, Size, &Buffer);
-        break;
     }
   }
+
+  strcat(Buffer, FunctionEnd);
 
   //Set up string constants
   //Format is:
@@ -242,12 +228,10 @@ char* Assemble(struct IntermediateRepresentationOp* Opcodes, int Size)
     snprintf(ConstantID, 64, "SC%i", i);
     sprintf(Expression, "%s:db %s,0\n", ConstantID, String_Constants[i]);
 
-    prepend(&Buffer, Expression);
+    strcat(Buffer, Expression);
 
     free(Expression);
   }
-
-  strcat(Buffer, FunctionEnd);
 
   CleanupAssembler();
 
