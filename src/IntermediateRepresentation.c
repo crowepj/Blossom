@@ -16,17 +16,17 @@ void FreeIR(struct IntermediateRepresentationOp* OPs, int Size)
 {
   for (int i = 0; i < Size; i++)
   {
-    if (OPs[i].ParametersLength > 0)
+    if (OPs[i].ChildrenLength > 0)
     {
-      for (int j = 0; j < OPs[i].ParametersLength; j++)
+      for (int j = 0; j < OPs[i].ChildrenLength; j++)
       {
-        if (OPs[i].Parameters[j]->T == IR_STRING || OPs[i].Parameters[j]->T == IR_IDENT)
-          free(OPs[i].Parameters[j]->V.s);
+        if (OPs[i].Children[j]->Value.T == IR_STRING || OPs[i].Children[j]->Value.T == IR_IDENT)
+          free(OPs[i].Children[j]->Value.V.s);
 
-        free(OPs[i].Parameters[j]);
+        free(OPs[i].Children[j]);
       }
 
-      free(OPs[i].Parameters);
+      free(OPs[i].Children);
     }
   }
 
@@ -95,7 +95,20 @@ struct IntermediateRepresentationOp* GenerateIR(struct AST* Tree, int* Outsize)
 
       case VariableDefinition:
       {
-        GenerateIR_Variable_Constant_Assign(Tree->Nodes[i]);
+        Temp = realloc(Opcodes, (Size + 1) * sizeof(struct IntermediateRepresentationOp));
+
+        if (Temp == NULL)
+        {
+          free(Opcodes);
+          return NULL;
+        }
+
+        op = GenerateIR_Variable_Constant_Assign(Tree->Nodes[i]);
+        //realloc was successful, set it
+        Opcodes = Temp;
+        //set opcode
+        Opcodes[Size] = op;
+        Size++;
       }
       break;
 

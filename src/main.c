@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 
 	assembled = realloc(assembled, strlen(assembled) + 200);
 
-	strcat(assembled, "extern printf;");
+	strcat(assembled, "extern printf\nextern exit\n");
 
 	WriteSourceFile("src/out/main.asm", assembled, strlen(assembled));
 	system("nasm src/out/main.asm -o src/out/main.o -f elf64; ld src/out/main.o -lc -dynamic-linker /usr/lib64/ld-linux-x86-64.so.2 -e _start -o a.out;");

@@ -47,16 +47,24 @@ struct IntermediateRepresentationValue GetValue(AstValue Value)
   return err;
 }
 
-unsigned char AppendParameter(struct IntermediateRepresentationOp* op, struct IntermediateRepresentationValue* value)
+unsigned char AppendParameter(struct IntermediateRepresentationOp* op, struct IntermediateRepresentationValue value)
 {
-  struct IntermediateRepresentationValue** temp_arr = realloc(op->Parameters, (op->ParametersLength + 1) * sizeof(struct IntermediateRepresentationValue*));
+  struct IntermediateRepresentationOp** temp_arr = realloc(op->Children, (op->ChildrenLength + 1) * sizeof(struct IntermediateRepresentationOp*));
 
   if (!temp_arr)
     return 1;
 
-  op->Parameters = temp_arr;
-  op->Parameters[op->ParametersLength] = value;
-  op->ParametersLength++;
+  struct IntermediateRepresentationOp* op_add = malloc(sizeof(struct IntermediateRepresentationOp));
+
+  if (!op)
+    return 1;
+
+  op_add->Opcode = IR_VALUE;
+  op_add->Value = value;
+
+  op->Children = temp_arr;
+  op->Children[op->ChildrenLength] = op_add;
+  op->ChildrenLength++;
 
   return 0;
 }

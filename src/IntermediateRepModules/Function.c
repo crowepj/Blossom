@@ -8,18 +8,14 @@ struct IntermediateRepresentationOp GenerateIR_FunctionDef(struct AST* Tree)
 {
   struct IntermediateRepresentationOp opcode;
   opcode.Opcode = FUNCDEF;
-  opcode.Parameters = malloc(0);
+  opcode.Children = malloc(0);
+  opcode.ChildrenLength = 0;
 
   struct IntermediateRepresentationValue value;
   value.T = IR_IDENT;
   value.V.s = strdup(Tree->Name);
 
-  struct IntermediateRepresentationValue* valuePointer = MakeValuePointer(value);
-
-  if (!valuePointer)
-    return;
-
-  AppendParameter(&opcode, valuePointer);
+  AppendParameter(&opcode, value);
 
   return opcode;
 }
@@ -28,8 +24,8 @@ struct IntermediateRepresentationOp GenerateIR_FunctionCall(struct AST* Tree, st
 {
   struct IntermediateRepresentationOp INS;
   INS.Opcode = CALL;
-  INS.Parameters = malloc(0);
-  INS.ParametersLength = 0;
+  INS.Children = malloc(0);
+  INS.ChildrenLength = 0;
 
   for (int i = 0; i < CallNode->ChildrenLength; i++)
   {
@@ -38,15 +34,7 @@ struct IntermediateRepresentationOp GenerateIR_FunctionCall(struct AST* Tree, st
     if (Value.T == IR_VAL_ERR)
       return;
 
-    struct IntermediateRepresentationValue* Pointerized = MakeValuePointer(Value);
-
-    //TODO Return some value to signify failure
-    if (!Pointerized)
-    {
-      return;
-    }
-
-    AppendParameter(&INS, Pointerized);
+    AppendParameter(&INS, Value);
   }
 
   return INS;

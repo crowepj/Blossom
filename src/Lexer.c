@@ -208,14 +208,14 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 			RetSize++;
 		}
 
-		else if (strcmp(Tokens[i], ":") == 0 && strcmp(Tokens[i], "="))
+		else if (strcmp(Tokens[i], ":") == 0 && strcmp(Tokens[i + 1], "=") == 0)
 		{
 			if (MakeToken(&RetVal, EQUAL, AST_NONE, NULL, 0, Index, RetSize) == 0)
 			{
 				return NULL;
 			}
 
-			i += 2;
+			i += 1;
 			Index++;
 			RetSize++;
 		}
@@ -399,7 +399,7 @@ Token* Lex(char** Tokens, int Size, int* OutSize)
 			{
 				AstValue val;
 				val.Value.s = strdup(Tokens[i]);
-				val.Type = AST_STRING;
+				val.Type = AST_IDENTIFIER;
 
 				if (MakeToken(&RetVal, IDENTIFIER, AST_IDENTIFIER, &val, strlen(Tokens[i]) + 1, Index, RetSize) == 0)
 				{

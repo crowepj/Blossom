@@ -25,6 +25,11 @@ struct AstNode* AST_Parse_Identifier(struct AST* This, Token* Tokens, int* Index
 		return AST_Parse_Function_Call(This, Tokens, Index, TokensSize);
 	}
 
+	else if (Tokens[*Index + 1].Token == EQUAL || Tokens[*Index].Token == EQUAL)
+	{
+		return AST_Parse_Variable(This, Tokens, Index, TokensSize);
+	}
+
 	return NULL;
 }
 
@@ -48,8 +53,6 @@ void AST_Generate(struct AST* This, Token* Tokens, int TokenSize)
 			case IDENTIFIER:
 			{
 				struct AstNode* node = AST_Parse_Identifier(This, Tokens, &i, TokenSize);
-
-				printf("PARSER IDENTIFIER\n");
 
 				if (!node)
 				{
@@ -89,9 +92,7 @@ void AST_Generate(struct AST* This, Token* Tokens, int TokenSize)
 				struct AstNode* node = AST_Parse_Variable(This, Tokens, &i, TokenSize);
 
 				if (!node)
-				{
 					return;
-				}
 
 				struct AstNode** temp = realloc(This->Nodes, (This->NodeLength + 1) * sizeof(struct AstNode*));
 

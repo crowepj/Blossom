@@ -1,2 +1,6 @@
+func _start() {
 
-func _start(){ var test = 3; }
+  printf("Test");
+
+  exit(1);
+}

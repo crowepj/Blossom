@@ -54,7 +54,7 @@ struct AstNode* AST_Parse_Function_Call(struct AST* This, Token* Tokens, int* In
 
 unsigned char AST_Parse_FunctionDefinition(struct AST* This, Token* Tokens, int* Index, int TokensSize)
 {
-	if (Tokens[*Index + 1].Value.Type != AST_STRING)
+	if (Tokens[*Index + 1].Value.Type != AST_STRING && Tokens[*Index + 1].Value.Type != AST_IDENTIFIER)
 		return 1;
 
 	This->Name = strdup(Tokens[*Index + 1].Value.Value.s);

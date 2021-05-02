@@ -28,8 +28,6 @@ struct IntermediateRepresentationValue
 
 enum IntermediateRepresentationInstruction
 {
-  PUSH,
-  POP,
   ADD,
   SUB,
   MUL,
@@ -38,6 +36,7 @@ enum IntermediateRepresentationInstruction
   V_ASSIGN,
   FUNCDEF,
   IR_USE,
+  IR_VALUE,
   //Err opcode means an error occured in generating the IR, e.g. malloc failed
   ERR,
 };
@@ -45,8 +44,9 @@ enum IntermediateRepresentationInstruction
 struct IntermediateRepresentationOp
 {
   enum IntermediateRepresentationInstruction Opcode;
-  struct IntermediateRepresentationValue** Parameters;
-  unsigned int ParametersLength;
+  struct IntermediateRepresentationOp** Children;
+  struct IntermediateRepresentationValue Value;
+  unsigned int ChildrenLength;
 };
 
 void FreeIR(struct IntermediateRepresentationOp* OPs, int Size);
