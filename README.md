@@ -1,5 +1,5 @@
-# Sap
-Sap is a compiled programming language written in C. It is partially inspired by ADA. Currently it is still in development (Very limited functionality), an example of what factorial might look like when finished:
+# Blossom
+Blossom is a compiled programming language written in C. It is partially inspired by ADA. Currently it is still in development (Very limited functionality), an example of what factorial might look like when finished:
 
 ```
 use "std/io";
